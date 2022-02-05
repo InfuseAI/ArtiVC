@@ -1,11 +1,13 @@
 package repository
 
 import (
+	"io/fs"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/infuseai/art/internal/util"
+	"github.com/infuseai/art/internal/core"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,24 +17,38 @@ func TestGenObjectPath(t *testing.T) {
 }
 
 func TestLocalFileSystemUpload(t *testing.T) {
+	baseDir := t.TempDir() + "/repo"
+	repoDir := t.TempDir() + "/data"
+	path := "test"
+	content := "test-data"
 	repo := LocalFileSystemRepository{
-		BaseDir: "/Users/popcorny/art/myart",
-		RepoDir: "/Users/popcorny/art/myrepo",
+		BaseDir: baseDir,
+		RepoDir: repoDir,
 	}
 
-	path := "abc"
+	// prepare data
 	fullPath := filepath.Join(repo.BaseDir, path)
-	hash := util.Sha1SumFromFile(fullPath)
-	fi, err := os.Stat(fullPath)
-	if err != nil {
-		panic(err)
+	os.MkdirAll(filepath.Dir(fullPath), fs.ModePerm)
+	if err := ioutil.WriteFile(fullPath, []byte(content), 0o644); err != nil {
+		assert.Fail(t, "cannot write file")
+		return
 	}
-	// get the size
-	size := fi.Size()
 
-	repo.UploadBlob(FileMetaData{
-		Path: path,
-		Hash: hash,
-		Size: size,
-	})
+	// upload
+	// get the size
+	metaData, err := core.MakeBlobMetadata(baseDir, path)
+	if err != nil {
+		assert.Fail(t, "cannot create metedata")
+		return
+	}
+
+	err = repo.UploadBlob(metaData)
+	if err != nil {
+		assert.Fail(t, "cannot create metedata")
+		return
+	}
+
+	destFile := GenObjectPath(repo.RepoDir, metaData.Hash)
+	data, _ := ioutil.ReadFile(destFile)
+	assert.Equal(t, content, string(data))
 }
