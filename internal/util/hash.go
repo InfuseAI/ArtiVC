@@ -1,4 +1,4 @@
-package internal
+package util
 
 import (
 	"crypto/sha1"
@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-func Sha256sum(path string) string {
+func Sha256SumFromFile(path string) string {
 	hasher := sha256.New()
 	f, err := os.Open(path)
 	if err != nil {
@@ -22,7 +22,7 @@ func Sha256sum(path string) string {
 	return fmt.Sprintf("%x", sum)
 }
 
-func Sha1sum(path string) string {
+func Sha1SumFromFile(path string) string {
 	hasher := sha1.New()
 	f, err := os.Open(path)
 	if err != nil {
