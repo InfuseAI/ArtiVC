@@ -5,15 +5,10 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"fmt"
-	"io/fs"
 	"log"
 	"os"
-	"path/filepath"
-	"time"
 
 	"github.com/infuseai/art/internal/core"
-	"github.com/infuseai/art/internal/repository"
 	"github.com/spf13/cobra"
 )
 
@@ -40,50 +35,13 @@ func Upload(cmd *cobra.Command, args []string) {
 	src := args[0]
 	dest := args[1]
 
-	commit := core.Commit{
-		CreatedAt: time.Now(),
-		Message:   nil,
-		Blobs:     make([]core.BlobMetaData, 0),
+	options := core.ArtifactManagerOptions{
+		BaseDir:    &src,
+		Repository: &dest,
 	}
 
-	filepath.Walk(src, func(absPath string, info fs.FileInfo, err error) error {
-		if err != nil {
-			fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", absPath, err)
-			return err
-		}
-
-		if info.IsDir() {
-			return nil
-		}
-
-		path := absPath[len(src)+1:]
-		metadata, err := core.MakeBlobMetadata(src, path)
-		if err != nil {
-			log.Fatalf("cannot make metadata: %s", path)
-			return err
-		}
-
-		commit.Blobs = append(commit.Blobs, metadata)
-		return nil
-	})
-
-	repo := repository.LocalFileSystemRepository{
-		BaseDir: src,
-		RepoDir: dest,
-	}
-
-	for _, metadata := range commit.Blobs {
-		log.Printf("upload %s\n", metadata.Path)
-		err := repo.UploadBlob(metadata)
-		if err != nil {
-			log.Fatalf("cannot upload blob: %s\n", metadata.Path)
-			break
-		}
-	}
-
-	_, hash := core.MakeCommitMetadata(&commit)
-	repo.Commit(commit)
-	repo.AddRef("latest", hash)
+	mngr := core.NewArtifactManager(options)
+	mngr.Push()
 }
 
 func init() {
