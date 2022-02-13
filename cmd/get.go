@@ -6,13 +6,16 @@ package cmd
 
 import (
 	"fmt"
+	"log"
+	"os"
 
+	"github.com/infuseai/art/internal/core"
 	"github.com/spf13/cobra"
 )
 
 // downloadCmd represents the download command
 var downloadCmd = &cobra.Command{
-	Use:   "download",
+	Use:   "get",
 	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
@@ -20,9 +23,28 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("download called")
-	},
+	Run: get,
+}
+
+func get(cmd *cobra.Command, args []string) {
+	if len(args) != 2 {
+		log.Fatal("upload require 2 argument")
+		os.Exit(1)
+	}
+
+	src := args[0]
+	dest := args[1]
+
+	options := core.ArtifactManagerOptions{
+		BaseDir:    &dest,
+		Repository: &src,
+	}
+
+	mngr := core.NewArtifactManager(options)
+	err := mngr.Pull()
+	if err != nil {
+		fmt.Printf("pull %v \n", err)
+	}
 }
 
 func init() {
