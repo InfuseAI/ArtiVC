@@ -207,16 +207,22 @@ func (mngr *ArtifactMangager) Pull() error {
 	}
 
 	return nil
+}
 
-	// sourceFileStat, err := os.Stat(localPath)
-	// if err == nil {
-	// 	if !sourceFileStat.Mode().IsRegular() {
-	// 		return fmt.Errorf("%s is not a regular file", localPath)
-	// 	}
-	// }
+func (mngr *ArtifactMangager) List() error {
+	ref := "latest"
+	commitHash, err := mngr.GetRef(ref)
+	if err != nil {
+		return err
+	}
 
-	// err = os.MkdirAll(filepath.Dir(destPath), fs.ModePerm)
-	// if err != nil {
-	// 	return err
-	// }
+	commit, err := mngr.GetCommit(commitHash)
+	if err != nil {
+		return err
+	}
+	for _, blob := range commit.Blobs {
+		fmt.Println(blob.Path)
+	}
+
+	return nil
 }
