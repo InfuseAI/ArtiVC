@@ -5,6 +5,7 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -40,7 +41,12 @@ func Upload(cmd *cobra.Command, args []string) {
 		Repository: &dest,
 	}
 
-	mngr := core.NewArtifactManager(options)
+	mngr, err := core.NewArtifactManager(options)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		return
+	}
+
 	mngr.Push()
 }
 

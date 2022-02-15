@@ -40,10 +40,16 @@ func get(cmd *cobra.Command, args []string) {
 		Repository: &src,
 	}
 
-	mngr := core.NewArtifactManager(options)
-	err := mngr.Pull()
+	mngr, err := core.NewArtifactManager(options)
 	if err != nil {
 		fmt.Printf("pull %v \n", err)
+		return
+	}
+
+	err = mngr.Pull()
+	if err != nil {
+		fmt.Printf("pull %v \n", err)
+		return
 	}
 }
 

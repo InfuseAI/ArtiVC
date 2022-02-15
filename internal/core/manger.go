@@ -24,12 +24,26 @@ type ArtifactManagerOptions struct {
 	Repository *string
 }
 
-func NewArtifactManager(options ArtifactManagerOptions) ArtifactMangager {
-	repo := repository.NewRepository(*options.Repository)
-	baseDir := *options.BaseDir
+func NewArtifactManager(options ArtifactManagerOptions) (*ArtifactMangager, error) {
+	config, err := LoadConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	baseDir := config.BaseDir()
+	if options.BaseDir != nil {
+		baseDir = *options.BaseDir
+	}
+
 	artDir := path.Join(baseDir, ".art")
 
-	return ArtifactMangager{baseDir: baseDir, repo: repo, artDir: artDir}
+	repoStr := config.Get("repo.url").(string)
+	if options.Repository != nil {
+		repoStr = *options.Repository
+	}
+	repo := repository.NewRepository(repoStr)
+
+	return &ArtifactMangager{baseDir: baseDir, repo: repo, artDir: artDir}, nil
 }
 
 func (mngr *ArtifactMangager) UploadBlob(metadata BlobMetaData) error {
@@ -134,7 +148,7 @@ func (mngr *ArtifactMangager) GetCommit(hash string) (*Commit, error) {
 	return &commit, nil
 }
 
-func (mngr *ArtifactMangager) Push() {
+func (mngr *ArtifactMangager) Push() error {
 	baseDir := mngr.baseDir
 	commit := Commit{
 		CreatedAt: time.Now(),
@@ -179,6 +193,8 @@ func (mngr *ArtifactMangager) Push() {
 	_, hash := MakeCommitMetadata(&commit)
 	mngr.Commit(commit)
 	mngr.AddRef("latest", hash)
+
+	return nil
 }
 
 func (mngr *ArtifactMangager) Pull() error {

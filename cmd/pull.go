@@ -6,15 +6,14 @@ package cmd
 
 import (
 	"fmt"
-	"log"
-	"os"
 
 	"github.com/infuseai/art/internal/core"
 	"github.com/spf13/cobra"
 )
 
-var listCommand = &cobra.Command{
-	Use:   "list",
+// getCmd represents the download command
+var pullCmd = &cobra.Command{
+	Use:   "pull",
 	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
@@ -22,42 +21,27 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: list,
+	Run: pull,
 }
 
-func list(cmd *cobra.Command, args []string) {
-	if len(args) != 1 {
-		log.Fatal("list require 1 argument")
-		os.Exit(1)
-	}
+func pull(cmd *cobra.Command, args []string) {
 
-	repo := args[0]
-
-	cwd, err := os.Getwd()
-	if err != nil {
-		fmt.Printf("list %v \n", err)
-		return
-	}
-
-	options := core.ArtifactManagerOptions{
-		BaseDir:    &cwd,
-		Repository: &repo,
-	}
+	options := core.ArtifactManagerOptions{}
 
 	mngr, err := core.NewArtifactManager(options)
 	if err != nil {
-		fmt.Printf("list %v \n", err)
+		fmt.Printf("pull %v \n", err)
 		return
 	}
 
-	err = mngr.List()
+	err = mngr.Pull()
 	if err != nil {
-		fmt.Printf("list %v \n", err)
+		fmt.Printf("pull %v \n", err)
 	}
 }
 
 func init() {
-	rootCmd.AddCommand(listCommand)
+	rootCmd.AddCommand(pullCmd)
 
 	// Here you will define your flags and configuration settings.
 

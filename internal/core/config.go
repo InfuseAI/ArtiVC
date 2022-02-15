@@ -16,8 +16,12 @@ func s(str string) *string {
 	return &str
 }
 
-func InitRepo(baseDir string) error {
-	config := make(map[string]interface{})
+func InitRepo(baseDir, repo string) error {
+	config := map[string]interface{}{
+		"repo": map[string]interface{}{
+			"url": repo,
+		},
+	}
 
 	airDir := path.Join(baseDir, ".art")
 	configPath := path.Join(airDir, "config")
@@ -43,8 +47,9 @@ func InitRepo(baseDir string) error {
 }
 
 type ArtConfig struct {
-	config map[string]interface{}
-	path   string
+	config  map[string]interface{}
+	path    string
+	baseDir string
 }
 
 func LoadConfig() (*ArtConfig, error) {
@@ -79,7 +84,7 @@ func LoadConfig() (*ArtConfig, error) {
 		}
 
 		if err == nil {
-			return &ArtConfig{config: config, path: path.Join(dir, ".art/config")}, nil
+			return &ArtConfig{config: config, baseDir: dir, path: path.Join(dir, ".art/config")}, nil
 		}
 
 		newDir := filepath.Dir(dir)
@@ -126,6 +131,10 @@ func (config *ArtConfig) Get(path string) interface{} {
 	}
 
 	return val
+}
+
+func (config *ArtConfig) BaseDir() string {
+	return config.baseDir
 }
 
 func (config *ArtConfig) Print() {

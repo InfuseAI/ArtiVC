@@ -5,6 +5,7 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"log"
 	"os"
 
 	"github.com/infuseai/art/internal/core"
@@ -24,8 +25,14 @@ to quickly create a Cobra application.`,
 }
 
 func repoInit(cmd *cobra.Command, args []string) {
+	if len(args) != 1 {
+		log.Fatal("init requires 1 argument")
+		os.Exit(1)
+	}
+
 	cwd, _ := os.Getwd()
-	core.InitRepo(cwd)
+	repo := args[0]
+	core.InitRepo(cwd, repo)
 }
 
 func init() {
