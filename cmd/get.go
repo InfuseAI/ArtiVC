@@ -13,8 +13,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// downloadCmd represents the download command
-var downloadCmd = &cobra.Command{
+// getCmd represents the download command
+var getCmd = &cobra.Command{
 	Use:   "get",
 	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
@@ -48,7 +48,7 @@ func get(cmd *cobra.Command, args []string) {
 }
 
 func init() {
-	rootCmd.AddCommand(downloadCmd)
+	rootCmd.AddCommand(getCmd)
 
 	// Here you will define your flags and configuration settings.
 
