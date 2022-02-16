@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/infuseai/art/internal/core"
 	"github.com/spf13/cobra"
@@ -29,19 +29,34 @@ art get s3://mybucket/path/to/mydataset`,
 }
 
 func get(cmd *cobra.Command, args []string) {
-	if len(args) != 2 {
-		log.Fatal("upload require 2 argument")
+	var err error
+
+	if len(args) != 1 {
+		log.Fatal("get require only 1 argument")
 		os.Exit(1)
 	}
 
 	repoUrl := args[0]
-	baseDir, err := filepath.Abs(args[1])
+	baseDir := cmd.Flag("output").Value.String()
+
+	if baseDir == "" {
+		comps := strings.Split(repoUrl, "/")
+		if len(comps) == 0 {
+			fmt.Fprintf(os.Stderr, "error: invlaid path: %v\n", repoUrl)
+			return
+		}
+		baseDir = comps[len(comps)-1]
+	}
+	baseDir, err = filepath.Abs(baseDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		return
 	}
 
-	config := core.NewConfig(baseDir, path.Join(baseDir, ".art"), repoUrl)
+	metadataDir, _ := os.MkdirTemp(os.TempDir(), "*-art")
+	defer os.RemoveAll(metadataDir)
+
+	config := core.NewConfig(baseDir, metadataDir, repoUrl)
 
 	mngr, err := core.NewArtifactManager(config)
 	if err != nil {
@@ -59,13 +74,5 @@ func get(cmd *cobra.Command, args []string) {
 func init() {
 	rootCmd.AddCommand(getCmd)
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// downloadCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// downloadCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	getCmd.Flags().StringP("output", "o", "", "Output directory")
 }

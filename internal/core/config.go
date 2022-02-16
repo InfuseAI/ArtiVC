@@ -12,10 +12,6 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
-func s(str string) *string {
-	return &str
-}
-
 func InitWorkspace(baseDir, repo string) error {
 	config := map[string]interface{}{
 		"repo": map[string]interface{}{

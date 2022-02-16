@@ -40,6 +40,8 @@ func put(cmd *cobra.Command, args []string) {
 	}
 
 	metadataDir, _ := os.MkdirTemp(os.TempDir(), "*-art")
+	defer os.RemoveAll(metadataDir)
+
 	repoUrl := args[1]
 
 	config := core.NewConfig(baseDir, metadataDir, repoUrl)
