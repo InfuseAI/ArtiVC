@@ -16,13 +16,13 @@ import (
 // getCmd represents the download command
 var getCmd = &cobra.Command{
 	Use:   "get",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Short: "Download data from repository",
+	Long: `Download data from repository. For example:
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+# download to 'mydataset' folder
+art get /path/to/mydataset
+art get file:///path/to/mydataset
+art get s3://mybucket/path/to/mydataset`,
 	Run: get,
 }
 
