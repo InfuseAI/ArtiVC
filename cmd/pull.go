@@ -14,13 +14,15 @@ import (
 // getCmd represents the download command
 var pullCmd = &cobra.Command{
 	Use:   "pull",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Short: "Switch workspace to the specific version",
+	Long: `Switch workspace to the specific version. For example:
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+# switch to the latest version
+art pull
+
+# switch to the specific version
+art pull v1.0.0
+`,
 	Run: pull,
 }
 
