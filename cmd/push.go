@@ -24,7 +24,7 @@ art push -m 'This is initial version'`,
 
 func push(cmd *cobra.Command, args []string) {
 
-	config, err := core.LoadConfig()
+	config, err := core.LoadConfig("")
 	if err != nil {
 		fmt.Printf("pull %v \n", err)
 		return

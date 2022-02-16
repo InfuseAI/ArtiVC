@@ -25,7 +25,7 @@ art list v1.0.0`,
 }
 
 func list(cmd *cobra.Command, args []string) {
-	config, err := core.LoadConfig()
+	config, err := core.LoadConfig("")
 	if err != nil {
 		fmt.Printf("list %v \n", err)
 		return

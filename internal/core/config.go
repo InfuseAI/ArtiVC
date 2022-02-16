@@ -16,15 +16,14 @@ func s(str string) *string {
 	return &str
 }
 
-func InitRepo(baseDir, repo string) error {
+func InitWorkspace(baseDir, repo string) error {
 	config := map[string]interface{}{
 		"repo": map[string]interface{}{
 			"url": repo,
 		},
 	}
 
-	airDir := path.Join(baseDir, ".art")
-	configPath := path.Join(airDir, "config")
+	configPath := path.Join(baseDir, ".art/config")
 	err := mkdirsForFile(configPath)
 	if err != nil {
 		return err
@@ -62,7 +61,7 @@ func NewConfig(baseDir, metadataDir, repoUrl string) ArtConfig {
 	return config
 }
 
-func LoadConfig() (ArtConfig, error) {
+func LoadConfig(dir string) (ArtConfig, error) {
 
 	load := func(dir string) (map[string]interface{}, error) {
 		var config = make(map[string]interface{})
@@ -81,9 +80,12 @@ func LoadConfig() (ArtConfig, error) {
 		return config, nil
 	}
 
-	dir, err := os.Getwd()
-	if err != nil {
-		return ArtConfig{}, err
+	if dir == "" {
+		var err2 error
+		dir, err2 = os.Getwd()
+		if err2 != nil {
+			return ArtConfig{}, err2
+		}
 	}
 
 	for {
@@ -185,7 +187,7 @@ func (config *ArtConfig) Print() {
 }
 
 func (config *ArtConfig) Save() error {
-	configPath := path.Join(config.MetadataDir, ".art/config")
+	configPath := path.Join(config.MetadataDir, "config")
 	f, err := os.OpenFile(configPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		return err

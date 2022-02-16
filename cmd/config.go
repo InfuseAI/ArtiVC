@@ -23,7 +23,7 @@ art config repo.url s3://your-bucket/data
 }
 
 func config(cmd *cobra.Command, args []string) {
-	config, err := core.LoadConfig()
+	config, err := core.LoadConfig("")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		return

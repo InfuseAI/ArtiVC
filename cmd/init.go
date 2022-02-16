@@ -30,7 +30,7 @@ func repoInit(cmd *cobra.Command, args []string) {
 
 	cwd, _ := os.Getwd()
 	repo := args[0]
-	core.InitRepo(cwd, repo)
+	core.InitWorkspace(cwd, repo)
 }
 
 func init() {
