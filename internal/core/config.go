@@ -78,7 +78,8 @@ func LoadConfig() (*ArtConfig, error) {
 
 	for {
 		config, err := load(dir)
-		if errors.As(err, &toml.ParseError{}) {
+		var e *toml.ParseError
+		if errors.As(err, &e) {
 			fmt.Fprintf(os.Stderr, "cannot load the workspace config\n")
 			return nil, err
 		}
@@ -94,7 +95,9 @@ func LoadConfig() (*ArtConfig, error) {
 		dir = newDir
 	}
 
-	return nil, fmt.Errorf("cannot find art repository")
+	err2 := &WorkspaceNotFoundError{}
+
+	return nil, err2
 }
 
 func (config *ArtConfig) Set(path string, value interface{}) {

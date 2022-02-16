@@ -2,6 +2,7 @@ package core
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/fs"
 	"log"
@@ -14,9 +15,16 @@ import (
 )
 
 type ArtifactMangager struct {
-	repo    repository.Repository
-	baseDir string
-	artDir  string
+
+	// local
+	baseDir string // the workspace base dir
+
+	/* the path to store the metadata of the repository.
+	If it is in an art workspace, the path should be "${baseDir}/.art"*/
+	metadataDir string
+
+	// repository
+	repo repository.Repository
 }
 
 type ArtifactManagerOptions struct {
@@ -25,25 +33,41 @@ type ArtifactManagerOptions struct {
 }
 
 func NewArtifactManager(options ArtifactManagerOptions) (*ArtifactMangager, error) {
+	var e *WorkspaceNotFoundError
 	config, err := LoadConfig()
-	if err != nil {
-		return nil, err
+	if err != nil && !errors.As(err, &e) {
+		return nil, e
 	}
 
-	baseDir := config.BaseDir()
+	// init the workspace path
+	var baseDir string
+	if config != nil {
+		baseDir = config.BaseDir()
+	}
 	if options.BaseDir != nil {
 		baseDir = *options.BaseDir
 	}
+	if baseDir == "" {
+		return nil, errors.New("not repository specified")
+	}
 
-	artDir := path.Join(baseDir, ".art")
+	// init the metadata path
+	metadataDir := path.Join(baseDir, ".art")
 
-	repoStr := config.Get("repo.url").(string)
+	// init the repository
+	var repoStr string
+	if config != nil && config.Get("repo.url") != nil {
+		repoStr = config.Get("repo.url").(string)
+	}
 	if options.Repository != nil {
 		repoStr = *options.Repository
 	}
+	if repoStr == "" {
+		return nil, errors.New("no repository specified")
+	}
 	repo := repository.NewRepository(repoStr)
 
-	return &ArtifactMangager{baseDir: baseDir, repo: repo, artDir: artDir}, nil
+	return &ArtifactMangager{baseDir: baseDir, repo: repo, metadataDir: metadataDir}, nil
 }
 
 func (mngr *ArtifactMangager) UploadBlob(metadata BlobMetaData) error {
@@ -63,7 +87,7 @@ func (mngr *ArtifactMangager) DownloadBlob(metadata BlobMetaData) error {
 func (mngr *ArtifactMangager) Commit(commit Commit) error {
 	content, hash := MakeCommitMetadata(&commit)
 	commitPath := MakeCommitPath(hash)
-	localPath := path.Join(mngr.artDir, commitPath)
+	localPath := path.Join(mngr.metadataDir, commitPath)
 	err := writeFile(content, localPath)
 	if err != nil {
 		return err
@@ -79,7 +103,7 @@ func (mngr *ArtifactMangager) Commit(commit Commit) error {
 
 func (mngr *ArtifactMangager) AddRef(ref string, commit string) error {
 	refPath := MakeRefPath(ref)
-	localPath := path.Join(mngr.artDir, refPath)
+	localPath := path.Join(mngr.metadataDir, refPath)
 	err := writeFile([]byte(commit), localPath)
 	if err != nil {
 		return err
@@ -95,7 +119,7 @@ func (mngr *ArtifactMangager) AddRef(ref string, commit string) error {
 
 func (mngr *ArtifactMangager) GetRef(ref string) (string, error) {
 	refPath := MakeRefPath(ref)
-	localPath := path.Join(mngr.artDir, refPath)
+	localPath := path.Join(mngr.metadataDir, refPath)
 
 	err := mkdirsForFile(localPath)
 	if err != nil {
@@ -107,7 +131,7 @@ func (mngr *ArtifactMangager) GetRef(ref string) (string, error) {
 		return "", err
 	}
 
-	data, err := readFile(path.Join(mngr.artDir, refPath))
+	data, err := readFile(path.Join(mngr.metadataDir, refPath))
 	if err != nil {
 		return "", err
 	}
@@ -122,7 +146,7 @@ func (mngr *ArtifactMangager) GetRef(ref string) (string, error) {
 
 func (mngr *ArtifactMangager) GetCommit(hash string) (*Commit, error) {
 	commitPath := MakeCommitPath(hash)
-	localPath := path.Join(mngr.artDir, commitPath)
+	localPath := path.Join(mngr.metadataDir, commitPath)
 
 	err := mkdirsForFile(localPath)
 	if err != nil {
@@ -134,7 +158,7 @@ func (mngr *ArtifactMangager) GetCommit(hash string) (*Commit, error) {
 		return nil, err
 	}
 
-	data, err := readFile(path.Join(mngr.artDir, commitPath))
+	data, err := readFile(path.Join(mngr.metadataDir, commitPath))
 	if err != nil {
 		return nil, err
 	}
