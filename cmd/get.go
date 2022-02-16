@@ -37,7 +37,11 @@ func get(cmd *cobra.Command, args []string) {
 	}
 
 	repoUrl := args[0]
-	baseDir := cmd.Flag("output").Value.String()
+	baseDir, err := cmd.Flags().GetString("output")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: i%v\n", err)
+		return
+	}
 
 	if baseDir == "" {
 		comps := strings.Split(repoUrl, "/")
