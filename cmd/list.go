@@ -6,8 +6,6 @@ package cmd
 
 import (
 	"fmt"
-	"log"
-	"os"
 
 	"github.com/infuseai/art/internal/core"
 	"github.com/spf13/cobra"
@@ -27,25 +25,13 @@ art list v1.0.0`,
 }
 
 func list(cmd *cobra.Command, args []string) {
-	if len(args) != 1 {
-		log.Fatal("list require 1 argument")
-		os.Exit(1)
-	}
-
-	repo := args[0]
-
-	cwd, err := os.Getwd()
+	config, err := core.LoadConfig()
 	if err != nil {
 		fmt.Printf("list %v \n", err)
 		return
 	}
 
-	options := core.ArtifactManagerOptions{
-		BaseDir:    &cwd,
-		Repository: &repo,
-	}
-
-	mngr, err := core.NewArtifactManager(options)
+	mngr, err := core.NewArtifactManager(config)
 	if err != nil {
 		fmt.Printf("list %v \n", err)
 		return

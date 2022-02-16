@@ -28,9 +28,13 @@ art pull v1.0.0
 
 func pull(cmd *cobra.Command, args []string) {
 
-	options := core.ArtifactManagerOptions{}
+	config, err := core.LoadConfig()
+	if err != nil {
+		fmt.Printf("pull %v \n", err)
+		return
+	}
 
-	mngr, err := core.NewArtifactManager(options)
+	mngr, err := core.NewArtifactManager(config)
 	if err != nil {
 		fmt.Printf("pull %v \n", err)
 		return

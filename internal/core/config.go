@@ -47,12 +47,22 @@ func InitRepo(baseDir, repo string) error {
 }
 
 type ArtConfig struct {
-	config  map[string]interface{}
-	path    string
-	baseDir string
+	config      map[string]interface{}
+	MetadataDir string
+	BaseDir     string
 }
 
-func LoadConfig() (*ArtConfig, error) {
+func NewConfig(baseDir, metadataDir, repoUrl string) ArtConfig {
+	config := ArtConfig{
+		BaseDir:     baseDir,
+		MetadataDir: metadataDir,
+	}
+	config.config = make(map[string]interface{})
+	config.SetRepoUrl(repoUrl)
+	return config
+}
+
+func LoadConfig() (ArtConfig, error) {
 
 	load := func(dir string) (map[string]interface{}, error) {
 		var config = make(map[string]interface{})
@@ -73,7 +83,7 @@ func LoadConfig() (*ArtConfig, error) {
 
 	dir, err := os.Getwd()
 	if err != nil {
-		return nil, err
+		return ArtConfig{}, err
 	}
 
 	for {
@@ -81,11 +91,11 @@ func LoadConfig() (*ArtConfig, error) {
 		var e *toml.ParseError
 		if errors.As(err, &e) {
 			fmt.Fprintf(os.Stderr, "cannot load the workspace config\n")
-			return nil, err
+			return ArtConfig{}, err
 		}
 
 		if err == nil {
-			return &ArtConfig{config: config, baseDir: dir, path: path.Join(dir, ".art/config")}, nil
+			return ArtConfig{config: config, BaseDir: dir, MetadataDir: path.Join(dir, ".art")}, nil
 		}
 
 		newDir := filepath.Dir(dir)
@@ -97,7 +107,7 @@ func LoadConfig() (*ArtConfig, error) {
 
 	err2 := &WorkspaceNotFoundError{}
 
-	return nil, err2
+	return ArtConfig{}, err2
 }
 
 func (config *ArtConfig) Set(path string, value interface{}) {
@@ -136,8 +146,22 @@ func (config *ArtConfig) Get(path string) interface{} {
 	return val
 }
 
-func (config *ArtConfig) BaseDir() string {
-	return config.baseDir
+func (config *ArtConfig) GetString(path string) string {
+	var value string
+
+	if config.Get(path) != nil {
+		value = config.Get(path).(string)
+	}
+
+	return value
+}
+
+func (config *ArtConfig) RepoUrl() string {
+	return config.GetString("repo.url")
+}
+
+func (config *ArtConfig) SetRepoUrl(repoUrl string) {
+	config.Set("repo.url", repoUrl)
 }
 
 func (config *ArtConfig) Print() {
@@ -161,7 +185,8 @@ func (config *ArtConfig) Print() {
 }
 
 func (config *ArtConfig) Save() error {
-	f, err := os.OpenFile(config.path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	configPath := path.Join(config.MetadataDir, ".art/config")
+	f, err := os.OpenFile(configPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		return err
 	}

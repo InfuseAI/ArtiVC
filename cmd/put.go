@@ -32,15 +32,14 @@ func put(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	src := args[0]
-	dest := args[1]
+	baseDir := args[0]
+	metadataDir, _ := os.MkdirTemp(os.TempDir(), "*-art")
+	repoUrl := args[1]
+	fmt.Println("metadata:" + metadataDir)
 
-	options := core.ArtifactManagerOptions{
-		BaseDir:    &src,
-		Repository: &dest,
-	}
+	config := core.NewConfig(baseDir, metadataDir, repoUrl)
 
-	mngr, err := core.NewArtifactManager(options)
+	mngr, err := core.NewArtifactManager(config)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		return

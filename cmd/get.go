@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path"
 
 	"github.com/infuseai/art/internal/core"
 	"github.com/spf13/cobra"
@@ -32,15 +33,11 @@ func get(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	src := args[0]
-	dest := args[1]
+	repoUrl := args[0]
+	baseDir := args[1]
+	config := core.NewConfig(baseDir, path.Join(baseDir, ".art"), repoUrl)
 
-	options := core.ArtifactManagerOptions{
-		BaseDir:    &dest,
-		Repository: &src,
-	}
-
-	mngr, err := core.NewArtifactManager(options)
+	mngr, err := core.NewArtifactManager(config)
 	if err != nil {
 		fmt.Printf("pull %v \n", err)
 		return

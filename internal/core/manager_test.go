@@ -1,38 +1,48 @@
 package core
 
-// func TestUpload(t *testing.T) {
-// 	baseDir := t.TempDir() + "/repo"
-// 	repoDir := t.TempDir() + "/data"
-// 	path := "test"
-// 	content := "test-data"
-// 	repo := repository.NewLocalFileSystemRepository() LocalFileSystemRepository{
-// 		BaseDir: baseDir,
-// 		RepoDir: repoDir,
-// 	}
+import (
+	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"testing"
 
-// 	// prepare data
-// 	fullPath := filepath.Join(repo.BaseDir, path)
-// 	os.MkdirAll(filepath.Dir(fullPath), fs.ModePerm)
-// 	if err := ioutil.WriteFile(fullPath, []byte(content), 0o644); err != nil {
-// 		assert.Fail(t, "cannot write file")
-// 		return
-// 	}
+	"github.com/stretchr/testify/assert"
+)
 
-// 	// upload
-// 	// get the size
-// 	metaData, err := core.MakeBlobMetadata(baseDir, path)
-// 	if err != nil {
-// 		assert.Fail(t, "cannot create metedata")
-// 		return
-// 	}
+func TestPush(t *testing.T) {
+	t.TempDir()
+	wp1 := t.TempDir() + "/wp1"
+	meta1 := t.TempDir() + "/meta1"
+	wp2 := t.TempDir() + "/wp2"
+	meta2 := t.TempDir() + "/meta2"
+	repo := t.TempDir() + "/repo"
 
-// 	err = repo.UploadBlob(metaData)
-// 	if err != nil {
-// 		assert.Fail(t, "cannot create metedata")
-// 		return
-// 	}
+	path := "test"
+	content := "test-data"
 
-// 	destFile := GenObjectPath(repo.RepoDir, metaData.Hash)
-// 	data, _ := ioutil.ReadFile(destFile)
-// 	assert.Equal(t, content, string(data))
-// }
+	writeFile([]byte(content), filepath.Join(wp1, path))
+
+	config := NewConfig(wp1, meta1, repo)
+	mngr1, _ := NewArtifactManager(config)
+	mngr1.Push()
+
+	config = NewConfig(wp2, meta2, repo)
+	mngr2, _ := NewArtifactManager(config)
+	mngr2.Pull()
+
+	data, _ := readFile(filepath.Join(wp2, path))
+	assert.Equal(t, string(data), content)
+
+	_, err := os.Stat(filepath.Join(wp2, ".art"))
+	assert.True(t, os.IsNotExist(err))
+}
+
+func TestTemp(t *testing.T) {
+
+	a, _ := ioutil.TempDir("", "example")
+	b := os.TempDir()
+	fmt.Printf(a)
+	fmt.Printf(b)
+
+}

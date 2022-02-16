@@ -32,36 +32,21 @@ type ArtifactManagerOptions struct {
 	Repository *string
 }
 
-func NewArtifactManager(options ArtifactManagerOptions) (*ArtifactMangager, error) {
-	var e *WorkspaceNotFoundError
-	config, err := LoadConfig()
-	if err != nil && !errors.As(err, &e) {
-		return nil, e
-	}
-
+func NewArtifactManager(config ArtConfig) (*ArtifactMangager, error) {
 	// init the workspace path
-	var baseDir string
-	if config != nil {
-		baseDir = config.BaseDir()
-	}
-	if options.BaseDir != nil {
-		baseDir = *options.BaseDir
-	}
+	baseDir := config.BaseDir
 	if baseDir == "" {
-		return nil, errors.New("not repository specified")
+		return nil, errors.New("no repository specified")
 	}
 
 	// init the metadata path
-	metadataDir := path.Join(baseDir, ".art")
+	metadataDir := config.MetadataDir
+	if baseDir == "" {
+		return nil, errors.New("no metadata specified")
+	}
 
 	// init the repository
-	var repoStr string
-	if config != nil && config.Get("repo.url") != nil {
-		repoStr = config.Get("repo.url").(string)
-	}
-	if options.Repository != nil {
-		repoStr = *options.Repository
-	}
+	repoStr := config.RepoUrl()
 	if repoStr == "" {
 		return nil, errors.New("no repository specified")
 	}
