@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/infuseai/art/internal/core"
 	"github.com/spf13/cobra"
@@ -32,10 +33,14 @@ func put(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	baseDir := args[0]
+	baseDir, err := filepath.Abs(args[0])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		return
+	}
+
 	metadataDir, _ := os.MkdirTemp(os.TempDir(), "*-art")
 	repoUrl := args[1]
-	fmt.Println("metadata:" + metadataDir)
 
 	config := core.NewConfig(baseDir, metadataDir, repoUrl)
 
