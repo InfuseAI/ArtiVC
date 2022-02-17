@@ -64,3 +64,8 @@ func (repo *LocalFileSystemRepository) Download(repoPath, localPath string) erro
 
 	return err
 }
+
+func (repo *LocalFileSystemRepository) Delete(repoPath string) error {
+	srcPath := path.Join(repo.RepoDir, repoPath)
+	return os.Remove(srcPath)
+}

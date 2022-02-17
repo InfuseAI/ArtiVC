@@ -47,9 +47,25 @@ func tag(cmd *cobra.Command, args []string) {
 		}
 	} else if len(args) == 1 {
 		tag := args[0]
-		err := mngr.AddTag("latest", tag)
+		refOrCommit, err := cmd.Flags().GetString("ref")
 		if err != nil {
 			exitWithError(err)
+		}
+		delete, err := cmd.Flags().GetBool("delete")
+		if err != nil {
+			exitWithError(err)
+		}
+
+		if !delete {
+			err := mngr.AddTag(refOrCommit, tag)
+			if err != nil {
+				exitWithError(err)
+			}
+		} else {
+			err := mngr.DeleteTag(tag)
+			if err != nil {
+				exitWithError(err)
+			}
 		}
 	} else {
 		exitWithFormat("requires 0 or 1 argument\n")
@@ -58,4 +74,7 @@ func tag(cmd *cobra.Command, args []string) {
 
 func init() {
 	rootCmd.AddCommand(tagCommand)
+
+	tagCommand.Flags().BoolP("delete", "D", false, "Delete a tag")
+	tagCommand.Flags().String("ref", "latest", "The source commit or reference to be tagged")
 }

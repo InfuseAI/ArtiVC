@@ -41,3 +41,7 @@ func writeFile(content []byte, dst string) error {
 func readFile(src string) ([]byte, error) {
 	return ioutil.ReadFile(src)
 }
+
+func deleteFile(src string) error {
+	return os.Remove(src)
+}

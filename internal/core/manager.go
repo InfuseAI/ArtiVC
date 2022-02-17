@@ -100,6 +100,23 @@ func (mngr *ArtifactMangager) AddRef(ref string, commit string) error {
 	return err
 }
 
+func (mngr *ArtifactMangager) DeleteRef(ref string) error {
+	refPath := MakeRefPath(ref)
+	localPath := path.Join(mngr.metadataDir, refPath)
+
+	err := deleteFile(localPath)
+	if err != nil {
+		return err
+	}
+
+	err = mngr.repo.Delete(refPath)
+	if err != nil {
+		return err
+	}
+
+	return err
+}
+
 func (mngr *ArtifactMangager) GetRef(ref string) (string, error) {
 	refPath := MakeRefPath(ref)
 	localPath := path.Join(mngr.metadataDir, refPath)
@@ -302,6 +319,10 @@ func (mngr *ArtifactMangager) ListTags() error {
 }
 
 func (mngr *ArtifactMangager) AddTag(refOrCommit, tag string) error {
+	if tag == "latest" {
+		return errors.New("latest cannot be a tag")
+	}
+
 	commitHash, err := mngr.FindCommitOrReference(refOrCommit)
 	if err != nil {
 		return err
@@ -316,6 +337,15 @@ func (mngr *ArtifactMangager) AddTag(refOrCommit, tag string) error {
 }
 
 func (mngr *ArtifactMangager) DeleteTag(tag string) error {
+	if tag == "latest" {
+		return errors.New("latest cannot be a tag")
+	}
+
+	err := mngr.DeleteRef("tags/" + tag)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
