@@ -158,9 +158,16 @@ func (mngr *ArtifactMangager) GetCommit(hash string) (*Commit, error) {
 }
 
 func (mngr *ArtifactMangager) Push() error {
+	ref := "latest"
+	commitHash, err := mngr.GetRef(ref)
+	if err != nil {
+		return err
+	}
+
 	baseDir := mngr.baseDir
 	commit := Commit{
 		CreatedAt: time.Now(),
+		Parent:    commitHash,
 		Message:   nil,
 		Blobs:     make([]BlobMetaData, 0),
 	}
@@ -234,8 +241,7 @@ func (mngr *ArtifactMangager) Pull() error {
 	return nil
 }
 
-func (mngr *ArtifactMangager) List() error {
-	ref := "latest"
+func (mngr *ArtifactMangager) List(ref string) error {
 	commitHash, err := mngr.GetRef(ref)
 	if err != nil {
 		return err
@@ -247,6 +253,33 @@ func (mngr *ArtifactMangager) List() error {
 	}
 	for _, blob := range commit.Blobs {
 		fmt.Println(blob.Path)
+	}
+
+	return nil
+}
+
+func (mngr *ArtifactMangager) Log(ref string) error {
+	commitHash, err := mngr.GetRef(ref)
+	if err != nil {
+		return err
+	}
+
+	for count := 0; commitHash != "" && count < 1000; count++ {
+		commit, err := mngr.GetCommit(commitHash)
+		if err != nil {
+			return err
+		}
+
+		message := ""
+		if commit.Message != nil {
+			message = *commit.Message
+		}
+
+		createdAt := commit.CreatedAt.Format("2006-01-02 15:04 -0700")
+
+		fmt.Printf("%s %v %s\n", commitHash[:8], createdAt, message)
+		commitHash = commit.Parent
+		count++
 	}
 
 	return nil

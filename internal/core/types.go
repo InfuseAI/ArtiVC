@@ -17,7 +17,8 @@ type BlobMetaData struct {
 
 type Commit struct {
 	CreatedAt time.Time      `json:"createdAt"`
-	Message   *string        `json:"messaage"`
+	Parent    string         `json:"parent,omitempty"`
+	Message   *string        `json:"messaage,omitempty"`
 	Blobs     []BlobMetaData `json:"blobs"`
 }
 
