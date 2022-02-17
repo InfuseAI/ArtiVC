@@ -367,11 +367,6 @@ func (mngr *ArtifactMangager) List(refOrCommit string) error {
 }
 
 func (mngr *ArtifactMangager) Log(refOrCommit string) error {
-	commitHash, err := mngr.FindCommitOrReference(refOrCommit)
-	if err != nil {
-		return err
-	}
-
 	type RefEntry struct {
 		refType string
 		ref     string
@@ -379,6 +374,20 @@ func (mngr *ArtifactMangager) Log(refOrCommit string) error {
 
 	commitIndex := map[string][]RefEntry{}
 
+	// get latest
+	latestPath := path.Join(mngr.metadataDir, "refs/latest")
+	data, err := readFile(latestPath)
+	if err == nil {
+		commitHash := string(data)
+		commitIndex[commitHash] = []RefEntry{RefEntry{
+			refType: "latest",
+			ref:     "latest",
+		}}
+	} else {
+		return err
+	}
+
+	// get reference
 	refTagsDir := path.Join(mngr.metadataDir, "refs/tags")
 	dirEntries, err := ioutil.ReadDir(refTagsDir)
 	if err == nil {
@@ -393,7 +402,7 @@ func (mngr *ArtifactMangager) Log(refOrCommit string) error {
 				return err
 			}
 
-			commitHash = string(data)
+			commitHash := string(data)
 			refEntry := RefEntry{
 				refType: "tag",
 				ref:     ref,
@@ -406,6 +415,11 @@ func (mngr *ArtifactMangager) Log(refOrCommit string) error {
 		}
 	}
 
+	// log from refOrCommit
+	commitHash, err := mngr.FindCommitOrReference(refOrCommit)
+	if err != nil {
+		return err
+	}
 	for count := 0; commitHash != "" && count < 1000; count++ {
 		commit, err := mngr.GetCommit(commitHash)
 		if err != nil {
@@ -433,7 +447,13 @@ func (mngr *ArtifactMangager) Log(refOrCommit string) error {
 					color.Set(color.FgYellow)
 					fmt.Print(", ")
 				}
-				color.Set(color.FgHiRed)
+
+				if refEntry.refType == "latest" {
+					color.Set(color.FgHiGreen)
+				} else {
+					color.Set(color.FgHiRed)
+				}
+
 				fmt.Print(refEntry.ref)
 				first = false
 			}
