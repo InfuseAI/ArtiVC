@@ -372,6 +372,40 @@ func (mngr *ArtifactMangager) Log(refOrCommit string) error {
 		return err
 	}
 
+	type RefEntry struct {
+		refType string
+		ref     string
+	}
+
+	commitIndex := map[string][]RefEntry{}
+
+	refTagsDir := path.Join(mngr.metadataDir, "refs/tags")
+	dirEntries, err := ioutil.ReadDir(refTagsDir)
+	if err == nil {
+		for _, entry := range dirEntries {
+			ref := entry.Name()
+			if entry.IsDir() {
+				continue
+			}
+
+			data, err := readFile(path.Join(refTagsDir, entry.Name()))
+			if err != nil {
+				return err
+			}
+
+			commitHash = string(data)
+			refEntry := RefEntry{
+				refType: "tag",
+				ref:     ref,
+			}
+			if commitIndex[commitHash] != nil {
+				commitIndex[commitHash] = append(commitIndex[commitHash], refEntry)
+			} else {
+				commitIndex[commitHash] = []RefEntry{refEntry}
+			}
+		}
+	}
+
 	for count := 0; commitHash != "" && count < 1000; count++ {
 		commit, err := mngr.GetCommit(commitHash)
 		if err != nil {
@@ -385,11 +419,28 @@ func (mngr *ArtifactMangager) Log(refOrCommit string) error {
 
 		createdAt := commit.CreatedAt.Format("2006-01-02 15:04 -0700")
 
-		// fmt.Printf("%s %v %s\n", commitHash[:8], createdAt, message)
 		color.Set(color.FgYellow)
 		fmt.Printf("%s ", commitHash[:8])
 		color.Set(color.FgHiBlack)
 		fmt.Printf("%s ", createdAt)
+
+		if commitIndex[commitHash] != nil {
+			first := true
+			color.Set(color.FgYellow)
+			fmt.Print("(")
+			for _, refEntry := range commitIndex[commitHash] {
+				if !first {
+					color.Set(color.FgYellow)
+					fmt.Print(", ")
+				}
+				color.Set(color.FgHiRed)
+				fmt.Print(refEntry.ref)
+				first = false
+			}
+			color.Set(color.FgYellow)
+			fmt.Print(") ")
+		}
+
 		color.Set(color.FgHiWhite)
 		fmt.Printf("%s\n", message)
 		color.Unset()
