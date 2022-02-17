@@ -21,7 +21,7 @@ var putCmd = &cobra.Command{
 # put the latest version
 art put ./folder/ /path/to/mydataset
 # put the specific version
-art put ./folder/ /path/to/mydataset@v1.0.0.`,
+art put ./folder/ /path/to/mydataset@v1.0.0`,
 	Run:  put,
 	Args: cobra.ExactArgs(2),
 }
@@ -38,6 +38,11 @@ func put(cmd *cobra.Command, args []string) {
 		exitWithError(err)
 	}
 
+	repoUrl, ref, err := parseRepoStr(args[1])
+	if err != nil {
+		exitWithError(err)
+	}
+
 	// options
 	option := core.PushOptions{}
 	message, err := cmd.Flags().GetString("message")
@@ -47,12 +52,13 @@ func put(cmd *cobra.Command, args []string) {
 	if message != "" {
 		option.Message = &message
 	}
+	if ref != "" {
+		option.Tag = &ref
+	}
 
 	// Create temp metadata
 	metadataDir, _ := os.MkdirTemp(os.TempDir(), "*-art")
 	defer os.RemoveAll(metadataDir)
-
-	repoUrl := args[1]
 
 	config := core.NewConfig(baseDir, metadataDir, repoUrl)
 

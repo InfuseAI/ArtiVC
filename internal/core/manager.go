@@ -258,13 +258,12 @@ func (mngr *ArtifactMangager) Fetch() error {
 }
 
 func (mngr *ArtifactMangager) Push(option PushOptions) error {
-	ref := RefLatest
-	commitHash, err := mngr.GetRef(ref)
+	parent, err := mngr.GetRef(RefLatest)
 	if err != nil {
 		return err
 	}
 
-	commit, err := mngr.MakeLocalCommit(commitHash, option.Message)
+	commit, err := mngr.MakeLocalCommit(parent, option.Message)
 	if err != nil {
 		return err
 	}
@@ -279,7 +278,11 @@ func (mngr *ArtifactMangager) Push(option PushOptions) error {
 
 	_, hash := MakeCommitMetadata(commit)
 	mngr.Commit(*commit)
+
 	mngr.AddRef(RefLatest, hash)
+	if option.Tag != nil {
+		mngr.AddTag(hash, *option.Tag)
+	}
 
 	return nil
 }

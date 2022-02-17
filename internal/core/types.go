@@ -29,6 +29,7 @@ type Commit struct {
 
 type PushOptions struct {
 	Message *string
+	Tag     *string
 }
 
 type PullOptions struct {
