@@ -334,9 +334,16 @@ func (mngr *ArtifactMangager) Pull(options PullOptions) error {
 	}
 
 	ref := RefLatest
-	commitHash, err := mngr.GetRef(ref)
+	if options.Ref != nil {
+		ref = *options.Ref
+	}
+
+	commitHash, err := mngr.FindCommitOrReference(ref)
 	if err != nil {
-		return err
+		commitHash, err = mngr.GetRef("tags/" + ref)
+		if err != nil {
+			return ErrReferenceNotFound
+		}
 	}
 
 	commit, err := mngr.GetCommit(commitHash)

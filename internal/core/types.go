@@ -34,6 +34,7 @@ type PushOptions struct {
 
 type PullOptions struct {
 	Fetch bool
+	Ref   *string
 }
 
 func MakeBlobMetadata(baseDir string, path string) (BlobMetaData, error) {

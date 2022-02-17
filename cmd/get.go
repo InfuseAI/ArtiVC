@@ -36,7 +36,7 @@ func get(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	repoUrl := args[0]
+	repoUrl, ref, err := parseRepoStr(args[0])
 	baseDir, err := cmd.Flags().GetString("output")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: i%v\n", err)
@@ -68,7 +68,12 @@ func get(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	err = mngr.Pull(core.PullOptions{})
+	options := core.PullOptions{}
+	if ref != "" {
+		options.Ref = &ref
+	}
+
+	err = mngr.Pull(options)
 	if err != nil {
 		fmt.Printf("pull %v \n", err)
 		return
