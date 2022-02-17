@@ -20,6 +20,10 @@ func MakeRefPath(ref string) string {
 	return fmt.Sprintf("refs/%s", ref)
 }
 
+func MakeTagPath(ref string) string {
+	return fmt.Sprintf("refs/tags/%s", ref)
+}
+
 func mkdirsForFile(file string) error {
 	return os.MkdirAll(filepath.Dir(file), fs.ModePerm)
 }

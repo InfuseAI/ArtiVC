@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"io/ioutil"
 	"log"
 	"path"
 	"path/filepath"
@@ -153,6 +154,48 @@ func (mngr *ArtifactMangager) GetCommit(hash string) (*Commit, error) {
 	return &commit, nil
 }
 
+func (mngr *ArtifactMangager) FindCommitOrReference(refOrCommit string) (string, error) {
+	data, err := readFile(path.Join(mngr.metadataDir, MakeRefPath(refOrCommit)))
+	if err == nil {
+		return string(data), nil
+	}
+
+	data, err = readFile(path.Join(mngr.metadataDir, MakeTagPath(refOrCommit)))
+	if err == nil {
+		return string(data), nil
+	}
+
+	if len(refOrCommit) >= 4 {
+		dirEntries, err := ioutil.ReadDir(path.Join(mngr.metadataDir, "commits"))
+		candidates := []string{}
+
+		if err != nil {
+			return "", err
+		}
+
+		for _, entry := range dirEntries {
+			if entry.IsDir() {
+				continue
+			}
+
+			if strings.HasPrefix(entry.Name(), refOrCommit) {
+				candidates = append(candidates, entry.Name())
+			}
+		}
+
+		if len(candidates) == 1 {
+			return candidates[0], nil
+		}
+	}
+
+	return "", ErrReferenceNotFound
+}
+
+// Fetch downloads all the metadta from repository
+func (mngr *ArtifactMangager) Fetch() error {
+	return nil
+}
+
 func (mngr *ArtifactMangager) Push(option PushOption) error {
 	ref := "latest"
 	commitHash, err := mngr.GetRef(ref)
@@ -237,8 +280,8 @@ func (mngr *ArtifactMangager) Pull() error {
 	return nil
 }
 
-func (mngr *ArtifactMangager) List(ref string) error {
-	commitHash, err := mngr.GetRef(ref)
+func (mngr *ArtifactMangager) List(refOrCommit string) error {
+	commitHash, err := mngr.FindCommitOrReference(refOrCommit)
 	if err != nil {
 		return err
 	}
@@ -254,8 +297,8 @@ func (mngr *ArtifactMangager) List(ref string) error {
 	return nil
 }
 
-func (mngr *ArtifactMangager) Log(ref string) error {
-	commitHash, err := mngr.GetRef(ref)
+func (mngr *ArtifactMangager) Log(refOrCommit string) error {
+	commitHash, err := mngr.FindCommitOrReference(refOrCommit)
 	if err != nil {
 		return err
 	}
