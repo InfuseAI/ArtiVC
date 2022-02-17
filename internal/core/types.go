@@ -22,8 +22,12 @@ type Commit struct {
 	Blobs     []BlobMetaData `json:"blobs"`
 }
 
-type PushOption struct {
+type PushOptions struct {
 	Message *string
+}
+
+type PullOptions struct {
+	Fetch bool
 }
 
 func MakeBlobMetadata(baseDir string, path string) (BlobMetaData, error) {

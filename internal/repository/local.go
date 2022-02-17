@@ -69,3 +69,20 @@ func (repo *LocalFileSystemRepository) Delete(repoPath string) error {
 	srcPath := path.Join(repo.RepoDir, repoPath)
 	return os.Remove(srcPath)
 }
+
+func (repo *LocalFileSystemRepository) List(repoPath string) ([]ListEntry, error) {
+	dir := path.Join(repo.RepoDir, repoPath)
+	fs, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+	fs2 := []ListEntry{}
+
+	for _, info := range fs {
+		info2, ok := info.(ListEntry)
+		if ok {
+			fs2 = append(fs2, info2)
+		}
+	}
+	return fs2, nil
+}

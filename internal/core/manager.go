@@ -209,12 +209,38 @@ func (mngr *ArtifactMangager) FindCommitOrReference(refOrCommit string) (string,
 	return "", ErrReferenceNotFound
 }
 
-// Fetch downloads all the metadta from repository
+// Fetch downloads all the metadata from repository
 func (mngr *ArtifactMangager) Fetch() error {
+	// fetch latest
+	mngr.GetRef("latest")
+
+	// fetch tags
+	tagEntries, err := mngr.repo.List("refs/tags")
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range tagEntries {
+		mngr.GetRef("tags/" + entry.Name())
+	}
+
+	// fetch commmits
+	commitEntries, err := mngr.repo.List("commits")
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range commitEntries {
+		_, err := mngr.GetCommit(entry.Name())
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
-func (mngr *ArtifactMangager) Push(option PushOption) error {
+func (mngr *ArtifactMangager) Push(option PushOptions) error {
 	ref := "latest"
 	commitHash, err := mngr.GetRef(ref)
 	if err != nil {
@@ -270,7 +296,15 @@ func (mngr *ArtifactMangager) Push(option PushOption) error {
 	return nil
 }
 
-func (mngr *ArtifactMangager) Pull() error {
+func (mngr *ArtifactMangager) Pull(options PullOptions) error {
+	var err error
+	if options.Fetch {
+		err = mngr.Fetch()
+		if err != nil {
+			return err
+		}
+	}
+
 	ref := "latest"
 	commitHash, err := mngr.GetRef(ref)
 	if err != nil {
@@ -299,6 +333,10 @@ func (mngr *ArtifactMangager) Pull() error {
 }
 
 func (mngr *ArtifactMangager) ListTags() error {
+	err := mngr.Fetch()
+	if err != nil {
+		return err
+	}
 
 	dirEntries, err := ioutil.ReadDir(path.Join(mngr.metadataDir, "refs/tags"))
 	if os.IsNotExist(err) {
@@ -367,6 +405,11 @@ func (mngr *ArtifactMangager) List(refOrCommit string) error {
 }
 
 func (mngr *ArtifactMangager) Log(refOrCommit string) error {
+	err := mngr.Fetch()
+	if err != nil {
+		return err
+	}
+
 	type RefEntry struct {
 		refType string
 		ref     string
@@ -379,7 +422,7 @@ func (mngr *ArtifactMangager) Log(refOrCommit string) error {
 	data, err := readFile(latestPath)
 	if err == nil {
 		commitHash := string(data)
-		commitIndex[commitHash] = []RefEntry{RefEntry{
+		commitIndex[commitHash] = []RefEntry{{
 			refType: "latest",
 			ref:     "latest",
 		}}

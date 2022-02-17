@@ -39,7 +39,7 @@ func put(cmd *cobra.Command, args []string) {
 	}
 
 	// options
-	option := core.PushOption{}
+	option := core.PushOptions{}
 	message, err := cmd.Flags().GetString("message")
 	if err != nil {
 		exitWithError(err)

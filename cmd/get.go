@@ -68,7 +68,7 @@ func get(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	err = mngr.Pull()
+	err = mngr.Pull(core.PullOptions{})
 	if err != nil {
 		fmt.Printf("pull %v \n", err)
 		return

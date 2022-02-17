@@ -40,7 +40,7 @@ func pull(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	err = mngr.Pull()
+	err = mngr.Pull(core.PullOptions{Fetch: true})
 	if err != nil {
 		fmt.Printf("pull %v \n", err)
 	}
