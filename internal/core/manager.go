@@ -54,16 +54,32 @@ func NewArtifactManager(config ArtConfig) (*ArtifactMangager, error) {
 }
 
 func (mngr *ArtifactMangager) UploadBlob(metadata BlobMetaData) error {
-	blobPath := filepath.Join(mngr.baseDir, metadata.Path)
 	repoPath := MakeObjectPath(metadata.Hash)
-	err := mngr.repo.Upload(blobPath, repoPath)
+	_, err := mngr.repo.Stat(repoPath)
+	if err == nil {
+		log.Printf("skip:   %s\n", metadata.Path)
+		return nil
+	} else {
+		log.Printf("upload: %s\n", metadata.Path)
+	}
+
+	blobPath := filepath.Join(mngr.baseDir, metadata.Path)
+	err = mngr.repo.Upload(blobPath, repoPath)
 	return err
 }
 
 func (mngr *ArtifactMangager) DownloadBlob(metadata BlobMetaData) error {
+	hash, err := Sha1SumFromFile(path.Join(mngr.baseDir, metadata.Path))
+	if err == nil && hash == metadata.Hash {
+		log.Printf("Skip:     %s\n", metadata.Path)
+		return nil
+	} else {
+		log.Printf("download: %s\n", metadata.Path)
+	}
+
 	blobPath := filepath.Join(mngr.baseDir, metadata.Path)
 	repoPath := MakeObjectPath(metadata.Hash)
-	err := mngr.repo.Download(repoPath, blobPath)
+	err = mngr.repo.Download(repoPath, blobPath)
 	return err
 }
 
@@ -281,7 +297,6 @@ func (mngr *ArtifactMangager) Push(option PushOptions) error {
 	})
 
 	for _, metadata := range commit.Blobs {
-		log.Printf("upload %s\n", metadata.Path)
 		err := mngr.UploadBlob(metadata)
 		if err != nil {
 			log.Fatalf("cannot upload blob: %s\n", metadata.Path)
@@ -316,8 +331,6 @@ func (mngr *ArtifactMangager) Pull(options PullOptions) error {
 		return err
 	}
 	for _, blob := range commit.Blobs {
-		log.Printf("download %s\n", blob.Path)
-
 		err := mkdirsForFile(path.Join(mngr.baseDir, blob.Path))
 		if err != nil {
 			return err

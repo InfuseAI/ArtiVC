@@ -66,8 +66,13 @@ func (repo *LocalFileSystemRepository) Download(repoPath, localPath string) erro
 }
 
 func (repo *LocalFileSystemRepository) Delete(repoPath string) error {
-	srcPath := path.Join(repo.RepoDir, repoPath)
-	return os.Remove(srcPath)
+	filePath := path.Join(repo.RepoDir, repoPath)
+	return os.Remove(filePath)
+}
+
+func (repo *LocalFileSystemRepository) Stat(repoPath string) (FileInfo, error) {
+	filePath := path.Join(repo.RepoDir, repoPath)
+	return os.Stat(filePath)
 }
 
 func (repo *LocalFileSystemRepository) List(repoPath string) ([]ListEntry, error) {
