@@ -30,7 +30,7 @@ func logCommits(cmd *cobra.Command, args []string) {
 
 	var ref string
 	if len(args) == 0 {
-		ref = "latest"
+		ref = core.RefLatest
 	} else if len(args) == 1 {
 		ref = args[0]
 	} else {

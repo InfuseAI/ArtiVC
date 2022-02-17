@@ -28,7 +28,7 @@ art list v1.0.0`,
 func list(cmd *cobra.Command, args []string) {
 	var ref string
 	if len(args) == 0 {
-		ref = "latest"
+		ref = core.RefLatest
 	} else if len(args) == 1 {
 		ref = args[0]
 	} else {

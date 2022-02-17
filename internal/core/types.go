@@ -8,6 +8,11 @@ import (
 	"time"
 )
 
+const (
+	RefLocal  = "__local__"
+	RefLatest = "latest"
+)
+
 type BlobMetaData struct {
 	Path string      `json:"path"`
 	Hash string      `json:"hash"`

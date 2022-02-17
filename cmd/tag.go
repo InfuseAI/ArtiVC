@@ -76,5 +76,5 @@ func init() {
 	rootCmd.AddCommand(tagCommand)
 
 	tagCommand.Flags().BoolP("delete", "D", false, "Delete a tag")
-	tagCommand.Flags().String("ref", "latest", "The source commit or reference to be tagged")
+	tagCommand.Flags().String("ref", core.RefLatest, "The source commit or reference to be tagged")
 }

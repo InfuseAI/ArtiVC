@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -228,7 +229,7 @@ func (mngr *ArtifactMangager) FindCommitOrReference(refOrCommit string) (string,
 // Fetch downloads all the metadata from repository
 func (mngr *ArtifactMangager) Fetch() error {
 	// fetch latest
-	mngr.GetRef("latest")
+	mngr.GetRef(RefLatest)
 
 	// fetch tags
 	tagEntries, err := mngr.repo.List("refs/tags")
@@ -257,17 +258,38 @@ func (mngr *ArtifactMangager) Fetch() error {
 }
 
 func (mngr *ArtifactMangager) Push(option PushOptions) error {
-	ref := "latest"
+	ref := RefLatest
 	commitHash, err := mngr.GetRef(ref)
 	if err != nil {
 		return err
 	}
 
+	commit, err := mngr.MakeLocalCommit(commitHash, option.Message)
+	if err != nil {
+		return err
+	}
+
+	for _, metadata := range commit.Blobs {
+		err := mngr.UploadBlob(metadata)
+		if err != nil {
+			log.Fatalf("cannot upload blob: %s\n", metadata.Path)
+			break
+		}
+	}
+
+	_, hash := MakeCommitMetadata(commit)
+	mngr.Commit(*commit)
+	mngr.AddRef(RefLatest, hash)
+
+	return nil
+}
+
+func (mngr *ArtifactMangager) MakeLocalCommit(parent string, message *string) (*Commit, error) {
 	baseDir := mngr.baseDir
 	commit := Commit{
 		CreatedAt: time.Now(),
-		Parent:    commitHash,
-		Message:   option.Message,
+		Parent:    parent,
+		Message:   message,
 		Blobs:     make([]BlobMetaData, 0),
 	}
 
@@ -296,19 +318,7 @@ func (mngr *ArtifactMangager) Push(option PushOptions) error {
 		return nil
 	})
 
-	for _, metadata := range commit.Blobs {
-		err := mngr.UploadBlob(metadata)
-		if err != nil {
-			log.Fatalf("cannot upload blob: %s\n", metadata.Path)
-			break
-		}
-	}
-
-	_, hash := MakeCommitMetadata(&commit)
-	mngr.Commit(commit)
-	mngr.AddRef("latest", hash)
-
-	return nil
+	return &commit, nil
 }
 
 func (mngr *ArtifactMangager) Pull(options PullOptions) error {
@@ -320,7 +330,7 @@ func (mngr *ArtifactMangager) Pull(options PullOptions) error {
 		}
 	}
 
-	ref := "latest"
+	ref := RefLatest
 	commitHash, err := mngr.GetRef(ref)
 	if err != nil {
 		return err
@@ -370,7 +380,7 @@ func (mngr *ArtifactMangager) ListTags() error {
 }
 
 func (mngr *ArtifactMangager) AddTag(refOrCommit, tag string) error {
-	if tag == "latest" {
+	if tag == RefLatest {
 		return errors.New("latest cannot be a tag")
 	}
 
@@ -388,7 +398,7 @@ func (mngr *ArtifactMangager) AddTag(refOrCommit, tag string) error {
 }
 
 func (mngr *ArtifactMangager) DeleteTag(tag string) error {
-	if tag == "latest" {
+	if tag == RefLatest {
 		return errors.New("latest cannot be a tag")
 	}
 
@@ -417,6 +427,79 @@ func (mngr *ArtifactMangager) List(refOrCommit string) error {
 	return nil
 }
 
+func (mngr *ArtifactMangager) Diff(leftRef, rightRef string) error {
+	type DiffEntry struct {
+		left  *BlobMetaData
+		right *BlobMetaData
+	}
+	entries := map[string]DiffEntry{}
+
+	var commitHash string
+	var commit *Commit
+	var err error
+	// left
+	if leftRef == RefLocal {
+		commit, err = mngr.MakeLocalCommit("", nil)
+		if err != nil {
+			return err
+		}
+	} else {
+		commitHash, err = mngr.FindCommitOrReference(leftRef)
+		if err != nil {
+			return err
+		}
+
+		commit, err = mngr.GetCommit(commitHash)
+		if err != nil {
+			return err
+		}
+	}
+	for i, blob := range commit.Blobs {
+		entry := entries[blob.Path]
+		entry.left = &commit.Blobs[i]
+		entries[blob.Path] = entry
+	}
+
+	// right
+	commitHash, err = mngr.FindCommitOrReference(rightRef)
+	if err != nil {
+		return err
+	}
+
+	commit, err = mngr.GetCommit(commitHash)
+	if err != nil {
+		return err
+	}
+
+	for i, blob := range commit.Blobs {
+		entry := entries[blob.Path]
+		entry.right = &commit.Blobs[i]
+		entries[blob.Path] = entry
+	}
+
+	// diff
+	paths := []string{}
+	for path, _ := range entries {
+		paths = append(paths, path)
+	}
+	sort.Strings(paths)
+
+	for _, path := range paths {
+		entry := entries[path]
+		if entry.left != nil && entry.right == nil {
+			color.HiGreen(fmt.Sprintf("+ %s\n", entry.left.Path))
+		} else if entry.left == nil && entry.right != nil {
+			color.HiRed(fmt.Sprintf("- %s\n", entry.right.Path))
+		} else if entry.left.Hash != entry.right.Hash {
+			color.HiYellow(fmt.Sprintf("! %s\n", entry.left.Path))
+		} else {
+			fmt.Printf("= %s\n", entry.left.Path)
+		}
+	}
+
+	return nil
+}
+
 func (mngr *ArtifactMangager) Log(refOrCommit string) error {
 	err := mngr.Fetch()
 	if err != nil {
@@ -436,8 +519,8 @@ func (mngr *ArtifactMangager) Log(refOrCommit string) error {
 	if err == nil {
 		commitHash := string(data)
 		commitIndex[commitHash] = []RefEntry{{
-			refType: "latest",
-			ref:     "latest",
+			refType: RefLatest,
+			ref:     RefLatest,
 		}}
 	} else {
 		return err
@@ -504,7 +587,7 @@ func (mngr *ArtifactMangager) Log(refOrCommit string) error {
 					fmt.Print(", ")
 				}
 
-				if refEntry.refType == "latest" {
+				if refEntry.refType == RefLatest {
 					color.Set(color.FgHiGreen)
 				} else {
 					color.Set(color.FgHiRed)
