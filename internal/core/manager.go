@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"io/ioutil"
 	"log"
+	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -277,6 +278,44 @@ func (mngr *ArtifactMangager) Pull() error {
 		}
 	}
 
+	return nil
+}
+
+func (mngr *ArtifactMangager) ListTags() error {
+
+	dirEntries, err := ioutil.ReadDir(path.Join(mngr.metadataDir, "refs/tags"))
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range dirEntries {
+		if entry.IsDir() {
+			continue
+		}
+
+		fmt.Println(entry.Name())
+	}
+	return nil
+}
+
+func (mngr *ArtifactMangager) AddTag(refOrCommit, tag string) error {
+	commitHash, err := mngr.FindCommitOrReference(refOrCommit)
+	if err != nil {
+		return err
+	}
+
+	err = mngr.AddRef("tags/"+tag, commitHash)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (mngr *ArtifactMangager) DeleteTag(tag string) error {
 	return nil
 }
 
