@@ -5,7 +5,6 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -14,7 +13,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var uploadCmd = &cobra.Command{
+var putCmd = &cobra.Command{
 	Use:   "put",
 	Short: "Upload files from local to repository",
 	Long: `Upload files from local to repository. For example:
@@ -28,6 +27,7 @@ art put ./folder/ /path/to/mydataset@v1.0.0.`,
 }
 
 func put(cmd *cobra.Command, args []string) {
+	// arguments
 	if len(args) != 2 {
 		log.Fatal("upload require 2 argument")
 		os.Exit(1)
@@ -35,10 +35,20 @@ func put(cmd *cobra.Command, args []string) {
 
 	baseDir, err := filepath.Abs(args[0])
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		return
+		exitWithError(err)
 	}
 
+	// options
+	option := core.PushOption{}
+	message, err := cmd.Flags().GetString("message")
+	if err != nil {
+		exitWithError(err)
+	}
+	if message != "" {
+		option.Message = &message
+	}
+
+	// Create temp metadata
 	metadataDir, _ := os.MkdirTemp(os.TempDir(), "*-art")
 	defer os.RemoveAll(metadataDir)
 
@@ -46,15 +56,17 @@ func put(cmd *cobra.Command, args []string) {
 
 	config := core.NewConfig(baseDir, metadataDir, repoUrl)
 
+	// push
 	mngr, err := core.NewArtifactManager(config)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		return
+		exitWithError(err)
 	}
 
-	mngr.Push()
+	mngr.Push(option)
 }
 
 func init() {
-	rootCmd.AddCommand(uploadCmd)
+	rootCmd.AddCommand(putCmd)
+
+	putCmd.Flags().StringP("message", "m", "", "Commit meessage")
 }

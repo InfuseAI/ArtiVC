@@ -22,6 +22,10 @@ type Commit struct {
 	Blobs     []BlobMetaData `json:"blobs"`
 }
 
+type PushOption struct {
+	Message *string
+}
+
 func MakeBlobMetadata(baseDir string, path string) (BlobMetaData, error) {
 	fullPath := filepath.Join(baseDir, path)
 	hash, _ := Sha1SumFromFile(fullPath)

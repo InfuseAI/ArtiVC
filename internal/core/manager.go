@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/infuseai/art/internal/repository"
 )
 
@@ -25,11 +26,6 @@ type ArtifactMangager struct {
 
 	// repository
 	repo repository.Repository
-}
-
-type ArtifactManagerOptions struct {
-	BaseDir    *string
-	Repository *string
 }
 
 func NewArtifactManager(config ArtConfig) (*ArtifactMangager, error) {
@@ -157,7 +153,7 @@ func (mngr *ArtifactMangager) GetCommit(hash string) (*Commit, error) {
 	return &commit, nil
 }
 
-func (mngr *ArtifactMangager) Push() error {
+func (mngr *ArtifactMangager) Push(option PushOption) error {
 	ref := "latest"
 	commitHash, err := mngr.GetRef(ref)
 	if err != nil {
@@ -168,7 +164,7 @@ func (mngr *ArtifactMangager) Push() error {
 	commit := Commit{
 		CreatedAt: time.Now(),
 		Parent:    commitHash,
-		Message:   nil,
+		Message:   option.Message,
 		Blobs:     make([]BlobMetaData, 0),
 	}
 
@@ -277,7 +273,15 @@ func (mngr *ArtifactMangager) Log(ref string) error {
 
 		createdAt := commit.CreatedAt.Format("2006-01-02 15:04 -0700")
 
-		fmt.Printf("%s %v %s\n", commitHash[:8], createdAt, message)
+		// fmt.Printf("%s %v %s\n", commitHash[:8], createdAt, message)
+		color.Set(color.FgYellow)
+		fmt.Printf("%s ", commitHash[:8])
+		color.Set(color.FgHiBlack)
+		fmt.Printf("%s ", createdAt)
+		color.Set(color.FgHiWhite)
+		fmt.Printf("%s\n", message)
+		color.Unset()
+
 		commitHash = commit.Parent
 		count++
 	}

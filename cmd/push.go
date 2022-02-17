@@ -5,8 +5,6 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/infuseai/art/internal/core"
 	"github.com/spf13/cobra"
 )
@@ -23,35 +21,35 @@ art push -m 'This is initial version'`,
 }
 
 func push(cmd *cobra.Command, args []string) {
-
 	config, err := core.LoadConfig("")
 	if err != nil {
-		fmt.Printf("pull %v \n", err)
-		return
+		exitWithError(err)
 	}
 
+	// options
+	option := core.PushOption{}
+	message, err := cmd.Flags().GetString("message")
+	if err != nil {
+		exitWithError(err)
+	}
+	if message != "" {
+		option.Message = &message
+	}
+
+	// push
 	mngr, err := core.NewArtifactManager(config)
 	if err != nil {
-		fmt.Printf("push %v \n", err)
-		return
+		exitWithError(err)
 	}
 
-	err = mngr.Push()
+	err = mngr.Push(option)
 	if err != nil {
-		fmt.Printf("push %v \n", err)
+		exitWithError(err)
 	}
 }
 
 func init() {
 	rootCmd.AddCommand(pushCmd)
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// downloadCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// downloadCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	pushCmd.Flags().StringP("message", "m", "", "Commit meessage")
 }
