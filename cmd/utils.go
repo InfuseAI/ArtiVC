@@ -7,6 +7,11 @@ import (
 	"strings"
 )
 
+const (
+	GROUP_BASIC     = "basic"
+	GROUP_WORKSPACE = "workspace"
+)
+
 func exitWithError(err error) {
 	fmt.Fprintf(os.Stderr, "error: %v\n", err)
 	os.Exit(1)

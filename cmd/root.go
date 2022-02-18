@@ -10,8 +10,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-
-
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "art",
@@ -22,6 +20,7 @@ examples and usage of using your application. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
+
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	// Run: func(cmd *cobra.Command, args []string) { },
@@ -37,15 +36,76 @@ func Execute() {
 }
 
 func init() {
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
+	cobra.EnableCommandSorting = false
+	rootCmd.SetUsageTemplate(usageTemplate)
 
-	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.art.yaml)")
+	addCommandWithGroup("basic",
+		getCmd,
+		putCmd,
+	)
 
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	addCommandWithGroup("workspace",
+		initCommand,
+		pullCmd,
+		pushCmd,
+		tagCommand,
+		listCommand,
+		logCommand,
+		diffCommand,
+		configCommand,
+	)
 }
 
+func addCommandWithGroup(group string, cmds ...*cobra.Command) {
+	for _, cmd := range cmds {
+		cmd.Annotations = map[string]string{
+			"group": group,
+		}
+	}
 
+	rootCmd.AddCommand(cmds...)
+}
+
+var usageTemplate = `{{- /* usage template */ -}}
+{{define "command" -}}
+{{if (or .IsAvailableCommand (eq .Name "help"))}}
+  {{rpad .Name .NamePadding }} {{.Short}}
+{{- end -}}
+{{- end -}}
+{{- /*
+	Body
+*/
+-}}
+Usage:{{if .Runnable}}
+  {{.UseLine}}{{end}}{{if .HasAvailableSubCommands}}
+  {{.CommandPath}} [command]{{end}}{{if gt (len .Aliases) 0}}
+
+Aliases:
+  {{.NameAndAliases}}{{end}}{{if .HasExample}}
+
+Examples:
+{{.Example}}{{end}}
+{{if .HasAvailableSubCommands}}
+{{- if not .HasParent}}
+Basic Commands:{{range .Commands}}{{if (eq .Annotations.group "basic")}}{{template "command" .}}{{end}}{{end}}
+
+Workspace Commands:{{range .Commands}}{{if (eq .Annotations.group "workspace")}}{{template "command" .}}{{end}}{{end}}
+
+Other Commands:{{range .Commands}}{{if not .Annotations.group}}{{template "command" .}}{{end}}{{end}}
+{{- else}}
+Available Commands:{{range .Commands}}{{if (or .IsAvailableCommand (eq .Name "help"))}}
+    {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}
+{{- end -}}
+{{end}}
+{{if .HasAvailableLocalFlags}}  
+Flags:
+{{.LocalFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableInheritedFlags}}
+
+Global Flags:
+{{.InheritedFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasHelpSubCommands}}
+
+Additional help topics:{{range .Commands}}{{if .IsAdditionalHelpTopicCommand}}
+  {{rpad .CommandPath .CommandPathPadding}} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableSubCommands}}
+
+Use "{{.CommandPath}} [command] --help" for more information about a command.{{end}}
+`

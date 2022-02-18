@@ -22,57 +22,53 @@ var putCmd = &cobra.Command{
 art put ./folder/ /path/to/mydataset
 # put the specific version
 art put ./folder/ /path/to/mydataset@v1.0.0`,
-	Run:  put,
 	Args: cobra.ExactArgs(2),
-}
+	Run: func(cmd *cobra.Command, args []string) {
+		// arguments
+		if len(args) != 2 {
+			log.Fatal("upload require 2 argument")
+			os.Exit(1)
+		}
 
-func put(cmd *cobra.Command, args []string) {
-	// arguments
-	if len(args) != 2 {
-		log.Fatal("upload require 2 argument")
-		os.Exit(1)
-	}
+		baseDir, err := filepath.Abs(args[0])
+		if err != nil {
+			exitWithError(err)
+		}
 
-	baseDir, err := filepath.Abs(args[0])
-	if err != nil {
-		exitWithError(err)
-	}
+		repoUrl, ref, err := parseRepoStr(args[1])
+		if err != nil {
+			exitWithError(err)
+		}
 
-	repoUrl, ref, err := parseRepoStr(args[1])
-	if err != nil {
-		exitWithError(err)
-	}
+		// options
+		option := core.PushOptions{}
+		message, err := cmd.Flags().GetString("message")
+		if err != nil {
+			exitWithError(err)
+		}
+		if message != "" {
+			option.Message = &message
+		}
+		if ref != "" {
+			option.Tag = &ref
+		}
 
-	// options
-	option := core.PushOptions{}
-	message, err := cmd.Flags().GetString("message")
-	if err != nil {
-		exitWithError(err)
-	}
-	if message != "" {
-		option.Message = &message
-	}
-	if ref != "" {
-		option.Tag = &ref
-	}
+		// Create temp metadata
+		metadataDir, _ := os.MkdirTemp(os.TempDir(), "*-art")
+		defer os.RemoveAll(metadataDir)
 
-	// Create temp metadata
-	metadataDir, _ := os.MkdirTemp(os.TempDir(), "*-art")
-	defer os.RemoveAll(metadataDir)
+		config := core.NewConfig(baseDir, metadataDir, repoUrl)
 
-	config := core.NewConfig(baseDir, metadataDir, repoUrl)
+		// push
+		mngr, err := core.NewArtifactManager(config)
+		if err != nil {
+			exitWithError(err)
+		}
 
-	// push
-	mngr, err := core.NewArtifactManager(config)
-	if err != nil {
-		exitWithError(err)
-	}
-
-	mngr.Push(option)
+		mngr.Push(option)
+	},
 }
 
 func init() {
-	rootCmd.AddCommand(putCmd)
-
 	putCmd.Flags().StringP("message", "m", "", "Commit meessage")
 }

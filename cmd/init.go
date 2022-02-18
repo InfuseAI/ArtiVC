@@ -19,20 +19,17 @@ var initCommand = &cobra.Command{
 
 cd mydataset/
 art init s3://mybucket/path/to/mydataset`,
-	Run: repoInit,
-}
+	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) != 1 {
+			log.Fatal("init requires 1 argument")
+			os.Exit(1)
+		}
 
-func repoInit(cmd *cobra.Command, args []string) {
-	if len(args) != 1 {
-		log.Fatal("init requires 1 argument")
-		os.Exit(1)
-	}
-
-	cwd, _ := os.Getwd()
-	repo := args[0]
-	core.InitWorkspace(cwd, repo)
+		cwd, _ := os.Getwd()
+		repo := args[0]
+		core.InitWorkspace(cwd, repo)
+	},
 }
 
 func init() {
-	rootCmd.AddCommand(initCommand)
 }

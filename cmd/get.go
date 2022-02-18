@@ -25,63 +25,59 @@ var getCmd = &cobra.Command{
 art get /path/to/mydataset
 art get file:///path/to/mydataset
 art get s3://mybucket/path/to/mydataset`,
-	Run: get,
-}
+	Run: func(cmd *cobra.Command, args []string) {
+		var err error
 
-func get(cmd *cobra.Command, args []string) {
-	var err error
+		if len(args) != 1 {
+			log.Fatal("get require only 1 argument")
+			os.Exit(1)
+		}
 
-	if len(args) != 1 {
-		log.Fatal("get require only 1 argument")
-		os.Exit(1)
-	}
-
-	repoUrl, ref, err := parseRepoStr(args[0])
-	baseDir, err := cmd.Flags().GetString("output")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: i%v\n", err)
-		return
-	}
-
-	if baseDir == "" {
-		comps := strings.Split(repoUrl, "/")
-		if len(comps) == 0 {
-			fmt.Fprintf(os.Stderr, "error: invlaid path: %v\n", repoUrl)
+		repoUrl, ref, err := parseRepoStr(args[0])
+		baseDir, err := cmd.Flags().GetString("output")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error: i%v\n", err)
 			return
 		}
-		baseDir = comps[len(comps)-1]
-	}
-	baseDir, err = filepath.Abs(baseDir)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		return
-	}
 
-	metadataDir, _ := os.MkdirTemp(os.TempDir(), "*-art")
-	defer os.RemoveAll(metadataDir)
+		if baseDir == "" {
+			comps := strings.Split(repoUrl, "/")
+			if len(comps) == 0 {
+				fmt.Fprintf(os.Stderr, "error: invlaid path: %v\n", repoUrl)
+				return
+			}
+			baseDir = comps[len(comps)-1]
+		}
+		baseDir, err = filepath.Abs(baseDir)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			return
+		}
 
-	config := core.NewConfig(baseDir, metadataDir, repoUrl)
+		metadataDir, _ := os.MkdirTemp(os.TempDir(), "*-art")
+		defer os.RemoveAll(metadataDir)
 
-	mngr, err := core.NewArtifactManager(config)
-	if err != nil {
-		fmt.Printf("pull %v \n", err)
-		return
-	}
+		config := core.NewConfig(baseDir, metadataDir, repoUrl)
 
-	options := core.PullOptions{}
-	if ref != "" {
-		options.Ref = &ref
-	}
+		mngr, err := core.NewArtifactManager(config)
+		if err != nil {
+			fmt.Printf("pull %v \n", err)
+			return
+		}
 
-	err = mngr.Pull(options)
-	if err != nil {
-		fmt.Printf("pull %v \n", err)
-		return
-	}
+		options := core.PullOptions{}
+		if ref != "" {
+			options.Ref = &ref
+		}
+
+		err = mngr.Pull(options)
+		if err != nil {
+			fmt.Printf("pull %v \n", err)
+			return
+		}
+	},
 }
 
 func init() {
-	rootCmd.AddCommand(getCmd)
-
 	getCmd.Flags().StringP("output", "o", "", "Output directory")
 }

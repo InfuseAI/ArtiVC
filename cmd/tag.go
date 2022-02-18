@@ -25,56 +25,52 @@ art tag v1.0.0
 # Delete a tags
 art tag --delete v1.0.0
 `,
-	Run: tag,
-}
-
-func tag(cmd *cobra.Command, args []string) {
-	config, err := core.LoadConfig("")
-	if err != nil {
-		exitWithError(err)
-	}
-
-	mngr, err := core.NewArtifactManager(config)
-	if err != nil {
-		fmt.Printf("log %v \n", err)
-		return
-	}
-
-	if len(args) == 0 {
-		err := mngr.ListTags()
-		if err != nil {
-			exitWithError(err)
-		}
-	} else if len(args) == 1 {
-		tag := args[0]
-		refOrCommit, err := cmd.Flags().GetString("ref")
-		if err != nil {
-			exitWithError(err)
-		}
-		delete, err := cmd.Flags().GetBool("delete")
+	Run: func(cmd *cobra.Command, args []string) {
+		config, err := core.LoadConfig("")
 		if err != nil {
 			exitWithError(err)
 		}
 
-		if !delete {
-			err := mngr.AddTag(refOrCommit, tag)
+		mngr, err := core.NewArtifactManager(config)
+		if err != nil {
+			fmt.Printf("log %v \n", err)
+			return
+		}
+
+		if len(args) == 0 {
+			err := mngr.ListTags()
 			if err != nil {
 				exitWithError(err)
+			}
+		} else if len(args) == 1 {
+			tag := args[0]
+			refOrCommit, err := cmd.Flags().GetString("ref")
+			if err != nil {
+				exitWithError(err)
+			}
+			delete, err := cmd.Flags().GetBool("delete")
+			if err != nil {
+				exitWithError(err)
+			}
+
+			if !delete {
+				err := mngr.AddTag(refOrCommit, tag)
+				if err != nil {
+					exitWithError(err)
+				}
+			} else {
+				err := mngr.DeleteTag(tag)
+				if err != nil {
+					exitWithError(err)
+				}
 			}
 		} else {
-			err := mngr.DeleteTag(tag)
-			if err != nil {
-				exitWithError(err)
-			}
+			exitWithFormat("requires 0 or 1 argument\n")
 		}
-	} else {
-		exitWithFormat("requires 0 or 1 argument\n")
-	}
+	},
 }
 
 func init() {
-	rootCmd.AddCommand(tagCommand)
-
 	tagCommand.Flags().BoolP("delete", "D", false, "Delete a tag")
 	tagCommand.Flags().String("ref", core.RefLatest, "The source commit or reference to be tagged")
 }

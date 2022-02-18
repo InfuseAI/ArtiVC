@@ -17,39 +17,35 @@ var pushCmd = &cobra.Command{
 
 # push current folder to remote
 art push -m 'This is initial version'`,
-	Run: push,
-}
+	Run: func(cmd *cobra.Command, args []string) {
+		config, err := core.LoadConfig("")
+		if err != nil {
+			exitWithError(err)
+		}
 
-func push(cmd *cobra.Command, args []string) {
-	config, err := core.LoadConfig("")
-	if err != nil {
-		exitWithError(err)
-	}
+		// options
+		option := core.PushOptions{}
+		message, err := cmd.Flags().GetString("message")
+		if err != nil {
+			exitWithError(err)
+		}
+		if message != "" {
+			option.Message = &message
+		}
 
-	// options
-	option := core.PushOptions{}
-	message, err := cmd.Flags().GetString("message")
-	if err != nil {
-		exitWithError(err)
-	}
-	if message != "" {
-		option.Message = &message
-	}
+		// push
+		mngr, err := core.NewArtifactManager(config)
+		if err != nil {
+			exitWithError(err)
+		}
 
-	// push
-	mngr, err := core.NewArtifactManager(config)
-	if err != nil {
-		exitWithError(err)
-	}
-
-	err = mngr.Push(option)
-	if err != nil {
-		exitWithError(err)
-	}
+		err = mngr.Push(option)
+		if err != nil {
+			exitWithError(err)
+		}
+	},
 }
 
 func init() {
-	rootCmd.AddCommand(pushCmd)
-
 	pushCmd.Flags().StringP("message", "m", "", "Commit meessage")
 }
