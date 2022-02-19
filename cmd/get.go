@@ -67,7 +67,7 @@ art get s3://mybucket/path/to/mydataset`,
 
 		options := core.PullOptions{}
 		if ref != "" {
-			options.Ref = &ref
+			options.RefOrCommit = &ref
 		}
 
 		err = mngr.Pull(options)

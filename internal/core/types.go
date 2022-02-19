@@ -33,8 +33,8 @@ type PushOptions struct {
 }
 
 type PullOptions struct {
-	Fetch bool
-	Ref   *string
+	Fetch       bool
+	RefOrCommit *string
 }
 
 func MakeBlobMetadata(baseDir string, path string) (BlobMetaData, error) {

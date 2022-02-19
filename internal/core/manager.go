@@ -190,12 +190,14 @@ func (mngr *ArtifactMangager) GetCommit(hash string) (*Commit, error) {
 }
 
 func (mngr *ArtifactMangager) FindCommitOrReference(refOrCommit string) (string, error) {
-	data, err := readFile(path.Join(mngr.metadataDir, MakeRefPath(refOrCommit)))
-	if err == nil {
-		return string(data), nil
+	var refPath string
+	if refOrCommit == RefLatest {
+		refPath = RefLatest
+	} else {
+		refPath = MakeTagPath(refOrCommit)
 	}
 
-	data, err = readFile(path.Join(mngr.metadataDir, MakeTagPath(refOrCommit)))
+	data, err := readFile(path.Join(mngr.metadataDir, refPath))
 	if err == nil {
 		return string(data), nil
 	}
@@ -260,7 +262,7 @@ func (mngr *ArtifactMangager) Fetch() error {
 func (mngr *ArtifactMangager) Push(option PushOptions) error {
 	parent, err := mngr.GetRef(RefLatest)
 	if err != nil {
-		return err
+		parent = ""
 	}
 
 	commit, err := mngr.MakeLocalCommit(parent, option.Message)
@@ -333,14 +335,20 @@ func (mngr *ArtifactMangager) Pull(options PullOptions) error {
 		}
 	}
 
-	ref := RefLatest
-	if options.Ref != nil {
-		ref = *options.Ref
+	refOrCommit := RefLatest
+	if options.RefOrCommit != nil {
+		refOrCommit = *options.RefOrCommit
 	}
 
-	commitHash, err := mngr.FindCommitOrReference(ref)
+	commitHash, err := mngr.FindCommitOrReference(refOrCommit)
 	if err != nil {
-		commitHash, err = mngr.GetRef("tags/" + ref)
+		var refPath string
+		if refOrCommit == RefLatest {
+			refPath = RefLatest
+		} else {
+			refPath = MakeTagPath(refOrCommit)
+		}
+		commitHash, err = mngr.GetRef(refPath)
 		if err != nil {
 			return ErrReferenceNotFound
 		}

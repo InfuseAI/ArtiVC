@@ -103,7 +103,7 @@ func LoadConfig(dir string) (ArtConfig, error) {
 		dir = newDir
 	}
 
-	err2 := &WorkspaceNotFoundError{}
+	err2 := ErrWorkspaceNotFound
 
 	return ArtConfig{}, err2
 }
