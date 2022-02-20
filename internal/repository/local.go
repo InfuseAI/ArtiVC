@@ -79,7 +79,7 @@ func (repo *LocalFileSystemRepository) List(repoPath string) ([]ListEntry, error
 	dir := path.Join(repo.RepoDir, repoPath)
 	fs, err := os.ReadDir(dir)
 	if err != nil {
-		return nil, err
+		return []ListEntry{}, nil
 	}
 	fs2 := []ListEntry{}
 

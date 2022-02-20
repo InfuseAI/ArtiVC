@@ -1,7 +1,9 @@
 package core
 
 import (
+	"compress/gzip"
 	"fmt"
+	"io"
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -40,6 +42,36 @@ func writeFile(content []byte, dst string) error {
 
 func readFile(src string) ([]byte, error) {
 	return ioutil.ReadFile(src)
+}
+
+func writeGzipFile(content []byte, dst string) error {
+	err := os.MkdirAll(filepath.Dir(dst), fs.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	file, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	gfile := gzip.NewWriter(file)
+	defer gfile.Close()
+	_, err = gfile.Write(content)
+	return err
+}
+
+func readGzipFile(src string) ([]byte, error) {
+	file, err := os.Open(src)
+	if err != nil {
+		return nil, err
+	}
+	gfile, err := gzip.NewReader(file)
+	if err != nil {
+		return nil, err
+	}
+	defer gfile.Close()
+
+	return io.ReadAll(gfile)
 }
 
 func deleteFile(src string) error {

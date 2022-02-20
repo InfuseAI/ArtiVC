@@ -11,8 +11,7 @@ import (
 )
 
 func TestPutGet(t *testing.T) {
-	// tempDir := t.TempDir()
-	tempDir := "/tmp/ut"
+	tempDir := t.TempDir()
 	wp1 := tempDir + "/wp1"
 	meta1 := tempDir + "/meta1"
 	wp2 := tempDir + "/wp2"

@@ -21,7 +21,7 @@ import (
 	"github.com/infuseai/art/internal/repository"
 )
 
-type ArtifactMangager struct {
+type ArtifactManager struct {
 
 	// local
 	baseDir string // the workspace base dir
@@ -34,7 +34,7 @@ type ArtifactMangager struct {
 	repo repository.Repository
 }
 
-func NewArtifactManager(config ArtConfig) (*ArtifactMangager, error) {
+func NewArtifactManager(config ArtConfig) (*ArtifactManager, error) {
 	// init the workspace path
 	baseDir := config.BaseDir
 	if baseDir == "" {
@@ -54,10 +54,10 @@ func NewArtifactManager(config ArtConfig) (*ArtifactMangager, error) {
 	}
 	repo := repository.NewRepository(repoStr)
 
-	return &ArtifactMangager{baseDir: baseDir, repo: repo, metadataDir: metadataDir}, nil
+	return &ArtifactManager{baseDir: baseDir, repo: repo, metadataDir: metadataDir}, nil
 }
 
-func (mngr *ArtifactMangager) UploadBlob(metadata BlobMetaData) error {
+func (mngr *ArtifactManager) UploadBlob(metadata BlobMetaData) error {
 	repoPath := MakeObjectPath(metadata.Hash)
 	_, err := mngr.repo.Stat(repoPath)
 	if err == nil {
@@ -72,7 +72,7 @@ func (mngr *ArtifactMangager) UploadBlob(metadata BlobMetaData) error {
 	return err
 }
 
-func (mngr *ArtifactMangager) DownloadBlob(metadata BlobMetaData) error {
+func (mngr *ArtifactManager) DownloadBlob(metadata BlobMetaData) error {
 	hash, err := Sha1SumFromFile(path.Join(mngr.baseDir, metadata.Path))
 	if err == nil && hash == metadata.Hash {
 		log.Printf("Skip:     %s\n", metadata.Path)
@@ -87,11 +87,11 @@ func (mngr *ArtifactMangager) DownloadBlob(metadata BlobMetaData) error {
 	return err
 }
 
-func (mngr *ArtifactMangager) Commit(commit Commit) error {
+func (mngr *ArtifactManager) Commit(commit Commit) error {
 	content, hash := MakeCommitMetadata(&commit)
 	commitPath := MakeCommitPath(hash)
 	localPath := path.Join(mngr.metadataDir, commitPath)
-	err := writeFile(content, localPath)
+	err := writeGzipFile(content, localPath)
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func (mngr *ArtifactMangager) Commit(commit Commit) error {
 	return err
 }
 
-func (mngr *ArtifactMangager) AddRef(ref string, commit string) error {
+func (mngr *ArtifactManager) AddRef(ref string, commit string) error {
 	refPath := MakeRefPath(ref)
 	localPath := path.Join(mngr.metadataDir, refPath)
 	err := writeFile([]byte(commit), localPath)
@@ -120,7 +120,7 @@ func (mngr *ArtifactMangager) AddRef(ref string, commit string) error {
 	return err
 }
 
-func (mngr *ArtifactMangager) DeleteRef(ref string) error {
+func (mngr *ArtifactManager) DeleteRef(ref string) error {
 	refPath := MakeRefPath(ref)
 	localPath := path.Join(mngr.metadataDir, refPath)
 
@@ -137,7 +137,7 @@ func (mngr *ArtifactMangager) DeleteRef(ref string) error {
 	return err
 }
 
-func (mngr *ArtifactMangager) GetRef(ref string) (string, error) {
+func (mngr *ArtifactManager) GetRef(ref string) (string, error) {
 	refPath := MakeRefPath(ref)
 	localPath := path.Join(mngr.metadataDir, refPath)
 
@@ -164,21 +164,24 @@ func (mngr *ArtifactMangager) GetRef(ref string) (string, error) {
 	return hash, nil
 }
 
-func (mngr *ArtifactMangager) GetCommit(hash string) (*Commit, error) {
+func (mngr *ArtifactManager) GetCommit(hash string) (*Commit, error) {
 	commitPath := MakeCommitPath(hash)
 	localPath := path.Join(mngr.metadataDir, commitPath)
 
-	err := mkdirsForFile(localPath)
+	_, err := os.Stat(localPath)
 	if err != nil {
-		return nil, err
+		err := mkdirsForFile(localPath)
+		if err != nil {
+			return nil, err
+		}
+
+		err = mngr.repo.Download(commitPath, localPath)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	err = mngr.repo.Download(commitPath, localPath)
-	if err != nil {
-		return nil, err
-	}
-
-	data, err := readFile(path.Join(mngr.metadataDir, commitPath))
+	data, err := readGzipFile(path.Join(mngr.metadataDir, commitPath))
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +195,7 @@ func (mngr *ArtifactMangager) GetCommit(hash string) (*Commit, error) {
 	return &commit, nil
 }
 
-func (mngr *ArtifactMangager) FindCommitOrReference(refOrCommit string) (string, error) {
+func (mngr *ArtifactManager) FindCommitOrReference(refOrCommit string) (string, error) {
 	var refPath string
 	if refOrCommit == RefLatest {
 		refPath = MakeRefPath(RefLatest)
@@ -232,7 +235,7 @@ func (mngr *ArtifactMangager) FindCommitOrReference(refOrCommit string) (string,
 }
 
 // Fetch downloads all the metadata from repository
-func (mngr *ArtifactMangager) Fetch() error {
+func (mngr *ArtifactManager) Fetch() error {
 	// fetch latest
 	mngr.GetRef(RefLatest)
 
@@ -262,13 +265,13 @@ func (mngr *ArtifactMangager) Fetch() error {
 	return nil
 }
 
-func (mngr *ArtifactMangager) Push(option PushOptions) error {
+func (mngr *ArtifactManager) Push(option PushOptions) error {
 	parent, err := mngr.GetRef(RefLatest)
 	if err != nil {
 		parent = ""
 	}
 
-	commit, err := mngr.MakeLocalCommit(parent, option.Message)
+	commit, err := mngr.MakeWorkspaceCommit(parent, option.Message)
 	if err != nil {
 		return err
 	}
@@ -292,7 +295,7 @@ func (mngr *ArtifactMangager) Push(option PushOptions) error {
 	return nil
 }
 
-func (mngr *ArtifactMangager) MakeLocalCommit(parent string, message *string) (*Commit, error) {
+func (mngr *ArtifactManager) MakeWorkspaceCommit(parent string, message *string) (*Commit, error) {
 	baseDir := mngr.baseDir
 	commit := Commit{
 		CreatedAt: time.Now(),
@@ -343,7 +346,7 @@ func (mngr *ArtifactMangager) MakeLocalCommit(parent string, message *string) (*
 	return &commit, nil
 }
 
-func (mngr *ArtifactMangager) Pull(options PullOptions) error {
+func (mngr *ArtifactManager) Pull(options PullOptions) error {
 	var err error
 	if options.Fetch {
 		err = mngr.Fetch()
@@ -390,7 +393,7 @@ func (mngr *ArtifactMangager) Pull(options PullOptions) error {
 	return nil
 }
 
-func (mngr *ArtifactMangager) ListTags() error {
+func (mngr *ArtifactManager) ListTags() error {
 	err := mngr.Fetch()
 	if err != nil {
 		return err
@@ -414,7 +417,7 @@ func (mngr *ArtifactMangager) ListTags() error {
 	return nil
 }
 
-func (mngr *ArtifactMangager) AddTag(refOrCommit, tag string) error {
+func (mngr *ArtifactManager) AddTag(refOrCommit, tag string) error {
 	if tag == RefLatest {
 		return errors.New("latest cannot be a tag")
 	}
@@ -432,7 +435,7 @@ func (mngr *ArtifactMangager) AddTag(refOrCommit, tag string) error {
 	return nil
 }
 
-func (mngr *ArtifactMangager) DeleteTag(tag string) error {
+func (mngr *ArtifactManager) DeleteTag(tag string) error {
 	if tag == RefLatest {
 		return errors.New("latest cannot be a tag")
 	}
@@ -445,7 +448,7 @@ func (mngr *ArtifactMangager) DeleteTag(tag string) error {
 	return nil
 }
 
-func (mngr *ArtifactMangager) List(refOrCommit string) error {
+func (mngr *ArtifactManager) List(refOrCommit string) error {
 	commitHash, err := mngr.FindCommitOrReference(refOrCommit)
 	if err != nil {
 		return err
@@ -462,7 +465,7 @@ func (mngr *ArtifactMangager) List(refOrCommit string) error {
 	return nil
 }
 
-func (mngr *ArtifactMangager) Diff(leftRef, rightRef string) error {
+func (mngr *ArtifactManager) Diff(leftRef, rightRef string) error {
 	type DiffEntry struct {
 		left  *BlobMetaData
 		right *BlobMetaData
@@ -474,7 +477,7 @@ func (mngr *ArtifactMangager) Diff(leftRef, rightRef string) error {
 	var err error
 	// left
 	if leftRef == RefLocal {
-		commit, err = mngr.MakeLocalCommit("", nil)
+		commit, err = mngr.MakeWorkspaceCommit("", nil)
 		if err != nil {
 			return err
 		}
@@ -535,7 +538,7 @@ func (mngr *ArtifactMangager) Diff(leftRef, rightRef string) error {
 	return nil
 }
 
-func (mngr *ArtifactMangager) Log(refOrCommit string) error {
+func (mngr *ArtifactManager) Log(refOrCommit string) error {
 	err := mngr.Fetch()
 	if err != nil {
 		return err
