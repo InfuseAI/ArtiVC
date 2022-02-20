@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,9 +13,11 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/fatih/color"
+	"github.com/infuseai/art/internal/executor"
 	"github.com/infuseai/art/internal/repository"
 )
 
@@ -192,7 +195,7 @@ func (mngr *ArtifactMangager) GetCommit(hash string) (*Commit, error) {
 func (mngr *ArtifactMangager) FindCommitOrReference(refOrCommit string) (string, error) {
 	var refPath string
 	if refOrCommit == RefLatest {
-		refPath = RefLatest
+		refPath = MakeRefPath(RefLatest)
 	} else {
 		refPath = MakeTagPath(refOrCommit)
 	}
@@ -298,30 +301,44 @@ func (mngr *ArtifactMangager) MakeLocalCommit(parent string, message *string) (*
 		Blobs:     make([]BlobMetaData, 0),
 	}
 
+	tasks := []executor.TaskFunc{}
+	mutex := sync.Mutex{}
 	filepath.Walk(baseDir, func(absPath string, info fs.FileInfo, err error) error {
-		if err != nil {
-			fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", absPath, err)
-			return err
-		}
+		task := func(ctx context.Context) error {
+			if err != nil {
+				fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", absPath, err)
+				return err
+			}
 
-		if info.IsDir() {
+			if info.IsDir() {
+				return nil
+			}
+
+			path := absPath[len(baseDir)+1:]
+			if strings.HasPrefix(path, ".art") {
+				return nil
+			}
+
+			metadata, err := MakeBlobMetadata(baseDir, path)
+			if err != nil {
+				log.Fatalf("cannot make metadata: %s", path)
+				return err
+			}
+
+			mutex.Lock()
+			commit.Blobs = append(commit.Blobs, metadata)
+			mutex.Unlock()
+
 			return nil
 		}
-
-		path := absPath[len(baseDir)+1:]
-		if strings.HasPrefix(path, ".art") {
-			return nil
-		}
-
-		metadata, err := MakeBlobMetadata(baseDir, path)
-		if err != nil {
-			log.Fatalf("cannot make metadata: %s", path)
-			return err
-		}
-
-		commit.Blobs = append(commit.Blobs, metadata)
+		tasks = append(tasks, task)
 		return nil
 	})
+
+	err := executor.ExecuteAll(0, tasks...)
+	if err != nil {
+		return nil, err
+	}
 
 	return &commit, nil
 }
