@@ -22,7 +22,7 @@ jobs:
           goos: ${{ matrix.goos }}
           goarch: ${{ matrix.goarch }}
           build_command: "make"
-          build_flags: "release"
+          build_flags: "build"
           binary_name: "art"
           ldflags: "-I."
           extra_files: bin/art

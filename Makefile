@@ -14,20 +14,7 @@ LDFLAGS += $(EXT_LDFLAGS)
 
 build:
 	mkdir -p bin
-	GOOS='$(GOOS)' GOARCH='$(GOARCH)' go build -o bin/art -ldflags '$(LDFLAGS)' main.go
+	go build -o bin/art -ldflags '$(LDFLAGS)' main.go
 
 test:
 	go test ./...
-
-build_for_release:
-	mkdir -p release
-	GOOS='$(GOOS)' GOARCH='$(GOARCH)' go build -o release/art-$(GOOS)-$(GOARCH) -ldflags '$(LDFLAGS)' main.go
-
-clean:
-	rm -rf release
-
-release: clean
-	make build_for_release GOOS=linux GOARCH=amd64
-	make build_for_release GOOS=linux GOARCH=arm64
-	make build_for_release GOOS=darwin GOARCH=amd64
-	make build_for_release GOOS=darwin GOARCH=arm64
