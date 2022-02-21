@@ -35,9 +35,7 @@ func NewRepository(repo string) (Repository, error) {
 
 	switch url.Scheme {
 	case "file":
-		return &LocalFileSystemRepository{
-			RepoDir: url.Path,
-		}, nil
+		return NewLocalFileSystemRepository(url.Path)
 	default:
 		return nil, UnsupportedRepositoryError{
 			Message: "unsupported repository",

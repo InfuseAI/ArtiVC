@@ -38,7 +38,16 @@ func NewArtifactManager(config ArtConfig) (*ArtifactManager, error) {
 	// init the workspace path
 	baseDir := config.BaseDir
 	if baseDir == "" {
-		return nil, errors.New("no repository specified")
+		return nil, errors.New("no workspace specified")
+	}
+
+	finfo, err := os.Stat(baseDir)
+	if err != nil {
+		return nil, errors.New(baseDir + " not found")
+	}
+
+	if !finfo.IsDir() {
+		return nil, errors.New(baseDir + " is not a directory")
 	}
 
 	// init the metadata path

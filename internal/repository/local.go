@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -12,6 +13,28 @@ import (
 // Local Filesystem
 type LocalFileSystemRepository struct {
 	RepoDir string
+}
+
+func NewLocalFileSystemRepository(repoDir string) (*LocalFileSystemRepository, error) {
+	stat, err := os.Stat(repoDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			err = os.Mkdir(repoDir, fs.ModePerm)
+			if err != nil {
+				return nil, errors.New("cannot make directory: " + repoDir)
+			}
+		} else {
+			return nil, err
+		}
+	} else {
+		if !stat.IsDir() {
+			return nil, errors.New(repoDir + " is not a directory")
+		}
+	}
+
+	return &LocalFileSystemRepository{
+		RepoDir: repoDir,
+	}, nil
 }
 
 func (repo *LocalFileSystemRepository) Upload(localPath, repoPath string) error {
