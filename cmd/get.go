@@ -17,15 +17,16 @@ import (
 
 // getCmd represents the download command
 var getCmd = &cobra.Command{
-	Use:   "get [-o <output>] [flags] <repository>",
-	Short: "Download data from a repository",
-	Example: `  # Download latest version. The data go to "mydataset" folder.
+	Use:                   "get [-o <output>] <repository>[@<commit>|<tag>]",
+	DisableFlagsInUseLine: true,
+	Short:                 "Download data from a repository",
+	Example: `  # Download the latest version. The data go to "mydataset" folder.
   art get s3://bucket/mydataset
 
   # Download the specific version
   art get s3://mybucket/path/to/mydataset@v1.0.0
   
-  # Download to a folder
+  # Download to a specific folder
   art get -o /tmp/mydataset s3://bucket/mydataset`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {

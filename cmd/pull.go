@@ -13,16 +13,13 @@ import (
 
 // getCmd represents the download command
 var pullCmd = &cobra.Command{
-	Use:   "pull",
-	Short: "Pull data from the repository to the workspace",
-	Long: `Pull data from the repository. For example:
+	Use:   "pull [<commit>|<tag>]",
+	Short: "Pull data from the repository",
+	Example: `  # Pull the latest version
+  art pull
 
-# switch to the latest version
-art pull
-
-# switch to the specific version
-art pull v1.0.0
-`,
+  # Pull from a specifc version
+  art pull v1.0.0`,
 	Args: cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
 

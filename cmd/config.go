@@ -13,12 +13,18 @@ import (
 )
 
 var configCommand = &cobra.Command{
-	Use:   "config",
-	Short: "Configure the workspace",
-	Long: `Setup the configuration to the workspace. For example:
+	Use:                   "config [<key> [<value>]]",
+	Short:                 "Configure the workspace",
+	Long:                  "Configure the workspace. The config file is stored at \".art/config\".",
+	DisableFlagsInUseLine: true,
+	Example: `  # List the config
+  art config
 
-art config repo.url s3://your-bucket/data
-`,
+  # Get the config
+  art config repo.url
+
+  # Set the config
+  art config repo.url s3://your-bucket/data`,
 	Args: cobra.RangeArgs(0, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		config, err := core.LoadConfig("")

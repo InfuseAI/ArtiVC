@@ -12,19 +12,20 @@ import (
 )
 
 var tagCommand = &cobra.Command{
-	Use:   "tag",
-	Short: "List or manage tags",
-	Long: `Manage tags in the repository. For example:
+	Use:                   "tag [--delete <tag>] [<tag>]",
+	DisableFlagsInUseLine: true,
+	Short:                 "List or manage tags",
+	Example: `  # List the tags
+  art tag
 
-# list the tags
-art tag
+  # Tag the lastest commit
+  art tag v1.0.0
 
-# Add a tag
-art tag v1.0.0
+  # Tag the specific commit
+  art tag --ref a1b2c3d4 v1.0.0  
 
-# Delete a tags
-art tag --delete v1.0.0
-`,
+  # Delete a tags
+  art tag --delete v1.0.0`,
 	Args: cobra.RangeArgs(0, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		config, err := core.LoadConfig("")

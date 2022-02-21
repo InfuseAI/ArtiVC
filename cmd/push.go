@@ -11,13 +11,17 @@ import (
 
 // getCmd represents the download command
 var pushCmd = &cobra.Command{
-	Use:   "push",
-	Short: "Push data from the workspace to the repository",
-	Long: `Make all changes to a commit in the repository. For example:
+	Use:                   "push [-m <message>]",
+	DisableFlagsInUseLine: true,
+	Short:                 "Push data to the repository",
+	Long:                  `Push data to the repository. There is no branch implemented yet, all put and push commands are always creating a commit and treat as the latest commit.`,
+	Example: `  # Push to the latest version
+  art push -m 'Initial version'
 
-# push current folder to remote
-art push -m 'This is initial version'`,
-	Args: cobra.RangeArgs(0, 1),
+  # Push to the latest version and tag to specific version
+  art push -m 'Initial version'
+  art tag v1.0.0`,
+	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		config, err := core.LoadConfig("")
 		if err != nil {

@@ -14,12 +14,13 @@ import (
 )
 
 var putCmd = &cobra.Command{
-	Use:   "put",
-	Short: "Upload data to a repository",
-	Example: `  # put the latest version
+	Use:                   "put [-m <message>] <dir> <repository>[@<tag>]",
+	DisableFlagsInUseLine: true,
+	Short:                 "Upload data to a repository",
+	Example: `  # Upload the latest version
   art put ./folder/ /path/to/mydataset
 
-  # put the specific version
+  # Upload the specific version
   art put ./folder/ /path/to/mydataset@v1.0.0`,
 	Args: cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {

@@ -13,15 +13,14 @@ import (
 )
 
 var logCommand = &cobra.Command{
-	Use:   "log",
-	Short: "Log commits",
-	Long: `Log commits in the repository. For example:
+	Use:                   "log [<commit>|<tag>]",
+	DisableFlagsInUseLine: true,
+	Short:                 "Log commits",
+	Example: `  # Log commits from the latest
+  art log
 
-# list the files for the latest version
-art log
-
-# list the files for the specific version
-art log v1.0.0`,
+  # Log commits from a specific version
+  art log v1.0.0`,
 	Args: cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
 		config, err := core.LoadConfig("")

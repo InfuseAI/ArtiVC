@@ -12,12 +12,13 @@ import (
 )
 
 var initCommand = &cobra.Command{
-	Use:   "init",
-	Short: "Initiate a workspace",
-	Example: `  # Init a workspace with local repo
+	Use:                   "init <repository>",
+	Short:                 "Initiate a workspace",
+	DisableFlagsInUseLine: true,
+	Example: `  # Init a workspace with local repository
   art init /path/to/mydataset
 
-  # Init a workspace with s3 repo
+  # Init a workspace with s3 repoisotry
   art init s3://mybucket/path/to/mydataset`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
