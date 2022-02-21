@@ -7,7 +7,7 @@ GIT_TAG    = $(shell git describe --tags --abbrev=0 --exact-match 2>/dev/null)
 GIT_DIRTY  = $(shell test -n "`git status --porcelain`" && echo "dirty" || echo "clean")
 
 ifeq ($(VERSION),)
-VERSION := $(shell echo $${GITHUB_REF:11})
+VERSION := $(shell echo $${GITHUB_REF:10})
 endif
 
 LDFLAGS += -X github.com/infuseai/art/cmd.tagVersion=${VERSION}
