@@ -222,7 +222,7 @@ func (mngr *ArtifactManager) FindCommitOrReference(refOrCommit string) (string, 
 		candidates := []string{}
 
 		if err != nil {
-			return "", err
+			dirEntries = []fs.FileInfo{}
 		}
 
 		for _, entry := range dirEntries {
@@ -488,6 +488,12 @@ func (mngr *ArtifactManager) Diff(leftRef, rightRef string) error {
 	var commitHash string
 	var commit *Commit
 	var err error
+
+	err = mngr.Fetch()
+	if err != nil {
+		return err
+	}
+
 	// left
 	if leftRef == RefLocal {
 		commit, err = mngr.MakeWorkspaceCommit("", nil)
