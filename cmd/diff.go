@@ -23,11 +23,11 @@ art list v1.0.0`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var left, right string
 		if len(args) == 0 {
-			left = core.RefLocal
-			right = core.RefLatest
+			left = core.RefLatest
+			right = core.RefLocal
 		} else if len(args) == 1 {
-			left = core.RefLocal
-			right = args[0]
+			left = args[0]
+			right = core.RefLocal
 		} else if len(args) == 2 {
 			left = args[0]
 			right = args[1]

@@ -488,6 +488,7 @@ func (mngr *ArtifactManager) Diff(leftRef, rightRef string) error {
 	var commitHash string
 	var commit *Commit
 	var err error
+	var added, deleted, changed int
 
 	err = mngr.Fetch()
 	if err != nil {
@@ -495,13 +496,30 @@ func (mngr *ArtifactManager) Diff(leftRef, rightRef string) error {
 	}
 
 	// left
-	if leftRef == RefLocal {
+	commitHash, err = mngr.FindCommitOrReference(leftRef)
+	if err != nil {
+		return err
+	}
+
+	commit, err = mngr.GetCommit(commitHash)
+	if err != nil {
+		return err
+	}
+
+	for i, blob := range commit.Blobs {
+		entry := entries[blob.Path]
+		entry.left = &commit.Blobs[i]
+		entries[blob.Path] = entry
+	}
+
+	// right
+	if rightRef == RefLocal {
 		commit, err = mngr.MakeWorkspaceCommit("", nil)
 		if err != nil {
 			return err
 		}
 	} else {
-		commitHash, err = mngr.FindCommitOrReference(leftRef)
+		commitHash, err = mngr.FindCommitOrReference(rightRef)
 		if err != nil {
 			return err
 		}
@@ -510,22 +528,6 @@ func (mngr *ArtifactManager) Diff(leftRef, rightRef string) error {
 		if err != nil {
 			return err
 		}
-	}
-	for i, blob := range commit.Blobs {
-		entry := entries[blob.Path]
-		entry.left = &commit.Blobs[i]
-		entries[blob.Path] = entry
-	}
-
-	// right
-	commitHash, err = mngr.FindCommitOrReference(rightRef)
-	if err != nil {
-		return err
-	}
-
-	commit, err = mngr.GetCommit(commitHash)
-	if err != nil {
-		return err
 	}
 
 	for i, blob := range commit.Blobs {
@@ -541,17 +543,88 @@ func (mngr *ArtifactManager) Diff(leftRef, rightRef string) error {
 	}
 	sort.Strings(paths)
 
+	// merge the "added" and "deleted" with the same content to "renamed"
+	mapAdded := map[string][]string{}
+	mapDeleted := map[string][]string{}
+	mapRenamed := map[string][]string{}
+	mapChanged := map[string][]string{}
+
+	myappend := func(s []string, item string) []string {
+		if s != nil {
+			return append(s, item)
+		} else {
+			return []string{item}
+		}
+
+	}
+
 	for _, path := range paths {
 		entry := entries[path]
-		if entry.left != nil && entry.right == nil {
-			color.HiGreen(fmt.Sprintf("+ %s\n", entry.left.Path))
-		} else if entry.left == nil && entry.right != nil {
-			color.HiRed(fmt.Sprintf("- %s\n", entry.right.Path))
+		if entry.left == nil && entry.right != nil {
+			mapAdded[entry.right.Hash] = myappend(mapAdded[entry.right.Hash], path)
+		} else if entry.left != nil && entry.right == nil {
+			mapDeleted[entry.left.Hash] = myappend(mapDeleted[entry.left.Hash], path)
 		} else if entry.left.Hash != entry.right.Hash {
-			color.HiYellow(fmt.Sprintf("! %s\n", entry.left.Path))
-		} else {
-			fmt.Printf("= %s\n", entry.left.Path)
+			mapChanged[entry.left.Hash] = myappend(mapChanged[entry.left.Hash], path)
 		}
+	}
+
+	for hash, addedPaths := range mapAdded {
+		deleledPaths := mapDeleted[hash]
+		if deleledPaths == nil {
+			continue
+		}
+
+		// n = min(added, deleted)
+		n := len(addedPaths)
+		if len(deleledPaths) < n {
+			n = len(deleledPaths)
+		}
+
+		//
+		renamedPaths := []string{}
+		for i := 0; i < n; i++ {
+			renamedPaths = append(renamedPaths, fmt.Sprintf("%s -> %s", deleledPaths[i], addedPaths[i]))
+		}
+		mapAdded[hash] = addedPaths[n:]
+		mapDeleted[hash] = deleledPaths[n:]
+		mapRenamed[hash] = renamedPaths
+	}
+
+	// print the changed paths
+	for _, paths := range mapAdded {
+		for _, path := range paths {
+			color.HiGreen(fmt.Sprintf("+ %s\n", path))
+			added++
+		}
+	}
+
+	for _, paths := range mapDeleted {
+		for _, path := range paths {
+			color.HiRed(fmt.Sprintf("- %s\n", path))
+			deleted++
+		}
+	}
+
+	for _, paths := range mapChanged {
+		for _, path := range paths {
+			color.HiYellow(fmt.Sprintf("C %s\n", path))
+			changed++
+		}
+	}
+
+	for _, paths := range mapRenamed {
+		for _, path := range paths {
+			color.HiYellow(fmt.Sprintf("R %s\n", path))
+			changed++
+		}
+	}
+
+	// show the summary
+	if added == 0 && deleted == 0 && changed == 0 {
+		fmt.Println("no changed")
+	} else {
+		fmt.Printf("%d changed, %d added(+), %d deleted(-)\n", changed, added, deleted)
 	}
 
 	return nil
