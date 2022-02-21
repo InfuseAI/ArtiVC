@@ -17,7 +17,6 @@ LDFLAGS += $(EXT_LDFLAGS)
 
 
 build:
-	git status --porcelain
 	mkdir -p bin
 	go build -o bin/art -ldflags '$(LDFLAGS)' main.go
 
