@@ -42,12 +42,10 @@ func NewArtifactManager(config ArtConfig) (*ArtifactManager, error) {
 	}
 
 	finfo, err := os.Stat(baseDir)
-	if err != nil {
-		return nil, errors.New(baseDir + " not found")
-	}
-
-	if !finfo.IsDir() {
-		return nil, errors.New(baseDir + " is not a directory")
+	if err == nil {
+		if !finfo.IsDir() {
+			return nil, errors.New(baseDir + " is not a directory")
+		}
 	}
 
 	// init the metadata path
