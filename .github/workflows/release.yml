@@ -26,3 +26,4 @@ jobs:
           binary_name: "art"
           ldflags: "-I."
           extra_files: bin/art
+          pre_command: "git clean -df"
