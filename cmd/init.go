@@ -5,7 +5,6 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"log"
 	"os"
 
 	"github.com/infuseai/art/internal/core"
@@ -15,16 +14,13 @@ import (
 var initCommand = &cobra.Command{
 	Use:   "init",
 	Short: "Initiate a workspace",
-	Long: `Initiate a workspace. For example:
+	Example: `  # Init a workspace with local repo
+  art init /path/to/mydataset
 
-cd mydataset/
-art init s3://mybucket/path/to/mydataset`,
+  # Init a workspace with s3 repo
+  art init s3://mybucket/path/to/mydataset`,
+	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) != 1 {
-			log.Fatal("init requires 1 argument")
-			os.Exit(1)
-		}
-
 		cwd, _ := os.Getwd()
 		repo := args[0]
 		core.InitWorkspace(cwd, repo)

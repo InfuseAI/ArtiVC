@@ -27,7 +27,7 @@ var getCmd = &cobra.Command{
   
   # Download to a folder
   art get -o /tmp/mydataset s3://bucket/mydataset`,
-
+	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
 

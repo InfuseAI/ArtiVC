@@ -17,6 +17,7 @@ var pushCmd = &cobra.Command{
 
 # push current folder to remote
 art push -m 'This is initial version'`,
+	Args: cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
 		config, err := core.LoadConfig("")
 		if err != nil {

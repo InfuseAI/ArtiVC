@@ -22,6 +22,7 @@ art log
 
 # list the files for the specific version
 art log v1.0.0`,
+	Args: cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
 		config, err := core.LoadConfig("")
 

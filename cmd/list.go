@@ -21,6 +21,7 @@ var listCommand = &cobra.Command{
 
   # list the files for the specific version
   art list v1.0.0`,
+	Args: cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
 		var ref string
 		if len(args) == 0 {

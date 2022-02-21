@@ -25,6 +25,7 @@ art tag v1.0.0
 # Delete a tags
 art tag --delete v1.0.0
 `,
+	Args: cobra.RangeArgs(0, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		config, err := core.LoadConfig("")
 		if err != nil {
