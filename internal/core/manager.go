@@ -316,7 +316,7 @@ func (mngr *ArtifactManager) MakeWorkspaceCommit(parent string, message *string)
 
 	tasks := []executor.TaskFunc{}
 	mutex := sync.Mutex{}
-	filepath.Walk(baseDir, func(absPath string, info fs.FileInfo, err error) error {
+	err := filepath.Walk(baseDir, func(absPath string, info fs.FileInfo, err error) error {
 		task := func(ctx context.Context) error {
 			if err != nil {
 				fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", absPath, err)
@@ -330,6 +330,11 @@ func (mngr *ArtifactManager) MakeWorkspaceCommit(parent string, message *string)
 			path := absPath[len(baseDir)+1:]
 			if strings.HasPrefix(path, ".art") {
 				return nil
+			}
+
+			if info.Mode()&os.ModeSymlink != 0 {
+				link, _ := os.Readlink(absPath)
+				return fmt.Errorf("symbolic link not implemented now. %s -> %s", path, link)
 			}
 
 			metadata, err := MakeBlobMetadata(baseDir, path)
@@ -346,8 +351,11 @@ func (mngr *ArtifactManager) MakeWorkspaceCommit(parent string, message *string)
 		tasks = append(tasks, task)
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
 
-	err := executor.ExecuteAll(0, tasks...)
+	err = executor.ExecuteAll(0, tasks...)
 	if err != nil {
 		return nil, err
 	}

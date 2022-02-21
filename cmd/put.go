@@ -58,7 +58,10 @@ var putCmd = &cobra.Command{
 			exitWithError(err)
 		}
 
-		mngr.Push(option)
+		err = mngr.Push(option)
+		if err != nil {
+			exitWithError(err)
+		}
 	},
 }
 
