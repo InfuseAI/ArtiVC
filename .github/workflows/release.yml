@@ -1,0 +1,28 @@
+name: Upload to release assets
+
+on:
+  release:
+    types: [ created ]
+
+jobs:
+  releases-matrix:
+    name: Release Go Binary
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [ linux, darwin ]
+        goarch: [ arm64, amd64 ]
+    steps:
+      - name: Show environment
+        run: export
+      - uses: actions/checkout@v2
+      - uses: wangyoucao577/go-release-action@v1.18
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          goos: ${{ matrix.goos }}
+          goarch: ${{ matrix.goarch }}
+          build_command: "make"
+          build_flags: "release"
+          binary_name: "art"
+          ldflags: "-I."
+          extra_files: bin/art
