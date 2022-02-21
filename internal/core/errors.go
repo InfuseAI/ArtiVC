@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	ErrWorkspaceNotFound = errors.New("workspace not found")
+	ErrWorkspaceNotFound = errors.New("not an art workspace")
 )
 
 type ReferenceNotFoundError struct {

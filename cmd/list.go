@@ -5,9 +5,6 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/infuseai/art/internal/core"
 	"github.com/spf13/cobra"
 )
@@ -26,28 +23,25 @@ var listCommand = &cobra.Command{
 		var ref string
 		if len(args) == 0 {
 			ref = core.RefLatest
-		} else if len(args) == 1 {
-			ref = args[0]
 		} else {
-			fmt.Fprintf(os.Stderr, "requires 0 or 1 argument\n")
-			os.Exit(1)
+			ref = args[0]
 		}
 
 		config, err := core.LoadConfig("")
 		if err != nil {
-			fmt.Printf("list %v \n", err)
+			exitWithError(err)
 			return
 		}
 
 		mngr, err := core.NewArtifactManager(config)
 		if err != nil {
-			fmt.Printf("list %v \n", err)
+			exitWithError(err)
 			return
 		}
 
 		err = mngr.List(ref)
 		if err != nil {
-			fmt.Printf("list %v \n", err)
+			exitWithError(err)
 		}
 	},
 }
