@@ -14,7 +14,7 @@ import (
 
 var configCommand = &cobra.Command{
 	Use:   "config",
-	Short: "Art workspace configurator",
+	Short: "Configure the workspace",
 	Long: `Setup the configuration to the workspace. For example:
 
 art config repo.url s3://your-bucket/data

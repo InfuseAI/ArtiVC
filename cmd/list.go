@@ -14,7 +14,7 @@ import (
 
 var listCommand = &cobra.Command{
 	Use:   "list",
-	Short: "List files in the repository",
+	Short: "List files of a commit",
 	Long:  "List files in the repository",
 	Example: `  # list the files for the latest version
   art list

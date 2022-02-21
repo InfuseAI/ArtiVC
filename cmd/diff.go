@@ -11,7 +11,7 @@ import (
 
 var diffCommand = &cobra.Command{
 	Use:   "diff",
-	Short: "List files in the repository",
+	Short: "Diff workspace/commits/references",
 	Long: `List files in the repository. For example:
 
 # list the files for the latest version

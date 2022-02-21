@@ -15,13 +15,12 @@ import (
 
 var putCmd = &cobra.Command{
 	Use:   "put",
-	Short: "Upload files from local to repository",
-	Long: `Upload files from local to repository. For example:
+	Short: "Upload data to a repository",
+	Example: `  # put the latest version
+  art put ./folder/ /path/to/mydataset
 
-# put the latest version
-art put ./folder/ /path/to/mydataset
-# put the specific version
-art put ./folder/ /path/to/mydataset@v1.0.0`,
+  # put the specific version
+  art put ./folder/ /path/to/mydataset@v1.0.0`,
 	Args: cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		// arguments

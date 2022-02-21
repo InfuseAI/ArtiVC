@@ -13,7 +13,7 @@ import (
 
 var tagCommand = &cobra.Command{
 	Use:   "tag",
-	Short: "Manage tags in the repository",
+	Short: "List or manage tags",
 	Long: `Manage tags in the repository. For example:
 
 # list the tags

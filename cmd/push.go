@@ -12,7 +12,7 @@ import (
 // getCmd represents the download command
 var pushCmd = &cobra.Command{
 	Use:   "push",
-	Short: "Make all changes to a commit in the repository",
+	Short: "Push data from the workspace to the repository",
 	Long: `Make all changes to a commit in the repository. For example:
 
 # push current folder to remote

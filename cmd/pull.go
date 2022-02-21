@@ -14,7 +14,7 @@ import (
 // getCmd represents the download command
 var pullCmd = &cobra.Command{
 	Use:   "pull",
-	Short: "Pull data from the repository",
+	Short: "Pull data from the repository to the workspace",
 	Long: `Pull data from the repository. For example:
 
 # switch to the latest version

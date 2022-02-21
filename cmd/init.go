@@ -14,8 +14,8 @@ import (
 
 var initCommand = &cobra.Command{
 	Use:   "init",
-	Short: "Initialize a workspace",
-	Long: `Initialize a workspace. For example:
+	Short: "Initiate a workspace",
+	Long: `Initiate a workspace. For example:
 
 cd mydataset/
 art init s3://mybucket/path/to/mydataset`,

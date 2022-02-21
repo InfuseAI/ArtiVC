@@ -17,14 +17,17 @@ import (
 
 // getCmd represents the download command
 var getCmd = &cobra.Command{
-	Use:   "get",
-	Short: "Download data from repository",
-	Long: `Download data from repository. For example:
+	Use:   "get [-o <output>] [flags] <repository>",
+	Short: "Download data from a repository",
+	Example: `  # Download latest version. The data go to "mydataset" folder.
+  art get s3://bucket/mydataset
 
-# download to 'mydataset' folder
-art get /path/to/mydataset
-art get file:///path/to/mydataset
-art get s3://mybucket/path/to/mydataset`,
+  # Download the specific version
+  art get s3://mybucket/path/to/mydataset@v1.0.0
+  
+  # Download to a folder
+  art get -o /tmp/mydataset s3://bucket/mydataset`,
+
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
 

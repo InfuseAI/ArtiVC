@@ -14,7 +14,7 @@ import (
 
 var logCommand = &cobra.Command{
 	Use:   "log",
-	Short: "Log commits in the repository",
+	Short: "Log commits",
 	Long: `Log commits in the repository. For example:
 
 # list the files for the latest version
