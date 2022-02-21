@@ -1,10 +1,10 @@
-name: Makefile CI
+name: Go test
 
 on:
   push:
-    branches: [ main ]
+    branches: "*"
   pull_request:
-    branches: [ main ]
+    branches: "*"
 
 jobs:
   build:

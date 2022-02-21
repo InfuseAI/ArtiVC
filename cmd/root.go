@@ -57,6 +57,10 @@ func init() {
 		logCommand,
 		diffCommand,
 	)
+
+	addCommandWithGroup("",
+		versionCommand,
+	)
 }
 
 func addCommandWithGroup(group string, cmds ...*cobra.Command) {
