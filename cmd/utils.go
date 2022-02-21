@@ -3,8 +3,9 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
+
+	"github.com/spf13/cobra"
 )
 
 const (
@@ -13,14 +14,11 @@ const (
 )
 
 func exitWithError(err error) {
-	fmt.Fprintf(os.Stderr, "error: %v\n", err)
-	os.Exit(1)
+	cobra.CheckErr(err)
 }
 
 func exitWithFormat(format string, a ...interface{}) {
-	fmt.Fprintf(os.Stderr, "error: ")
-	fmt.Fprintf(os.Stderr, format, a...)
-	os.Exit(1)
+	cobra.CheckErr(fmt.Sprintf(format, a...))
 }
 
 func parseRepoStr(repoAndRef string) (repoUrl string, ref string, err error) {

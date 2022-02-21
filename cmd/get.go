@@ -5,7 +5,6 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -30,11 +29,6 @@ var getCmd = &cobra.Command{
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
-
-		if len(args) != 1 {
-			log.Fatal("get require only 1 argument")
-			os.Exit(1)
-		}
 
 		repoUrl, ref, err := parseRepoStr(args[0])
 		baseDir, err := cmd.Flags().GetString("output")

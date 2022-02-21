@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io/fs"
 	"io/ioutil"
-	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -71,10 +70,10 @@ func (mngr *ArtifactManager) UploadBlob(metadata BlobMetaData) error {
 	repoPath := MakeObjectPath(metadata.Hash)
 	_, err := mngr.repo.Stat(repoPath)
 	if err == nil {
-		log.Printf("skip:   %s\n", metadata.Path)
+		fmt.Printf("skip:   %s\n", metadata.Path)
 		return nil
 	} else {
-		log.Printf("upload: %s\n", metadata.Path)
+		fmt.Printf("upload: %s\n", metadata.Path)
 	}
 
 	blobPath := filepath.Join(mngr.baseDir, metadata.Path)
@@ -85,10 +84,10 @@ func (mngr *ArtifactManager) UploadBlob(metadata BlobMetaData) error {
 func (mngr *ArtifactManager) DownloadBlob(metadata BlobMetaData) error {
 	hash, err := Sha1SumFromFile(path.Join(mngr.baseDir, metadata.Path))
 	if err == nil && hash == metadata.Hash {
-		log.Printf("Skip:     %s\n", metadata.Path)
+		fmt.Printf("Skip:     %s\n", metadata.Path)
 		return nil
 	} else {
-		log.Printf("download: %s\n", metadata.Path)
+		fmt.Printf("download: %s\n", metadata.Path)
 	}
 
 	blobPath := filepath.Join(mngr.baseDir, metadata.Path)
@@ -291,8 +290,7 @@ func (mngr *ArtifactManager) Push(option PushOptions) error {
 	for _, metadata := range commit.Blobs {
 		err := mngr.UploadBlob(metadata)
 		if err != nil {
-			log.Fatalf("cannot upload blob: %s\n", metadata.Path)
-			break
+			return fmt.Errorf("cannot upload blob: %s\n", metadata.Path)
 		}
 	}
 
@@ -336,8 +334,7 @@ func (mngr *ArtifactManager) MakeWorkspaceCommit(parent string, message *string)
 
 			metadata, err := MakeBlobMetadata(baseDir, path)
 			if err != nil {
-				log.Fatalf("cannot make metadata: %s", path)
-				return err
+				return fmt.Errorf("cannot make metadata: %s", path)
 			}
 
 			mutex.Lock()

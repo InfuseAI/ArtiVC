@@ -5,7 +5,6 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"log"
 	"os"
 	"path/filepath"
 
@@ -24,12 +23,6 @@ var putCmd = &cobra.Command{
   art put ./folder/ /path/to/mydataset@v1.0.0`,
 	Args: cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		// arguments
-		if len(args) != 2 {
-			log.Fatal("upload require 2 argument")
-			os.Exit(1)
-		}
-
 		baseDir, err := filepath.Abs(args[0])
 		if err != nil {
 			exitWithError(err)
