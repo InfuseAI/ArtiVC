@@ -52,7 +52,10 @@ func NewArtifactManager(config ArtConfig) (*ArtifactManager, error) {
 	if repoStr == "" {
 		return nil, errors.New("no repository specified")
 	}
-	repo := repository.NewRepository(repoStr)
+	repo, err := repository.NewRepository(repoStr)
+	if err != nil {
+		return nil, err
+	}
 
 	return &ArtifactManager{baseDir: baseDir, repo: repo, metadataDir: metadataDir}, nil
 }
@@ -231,7 +234,9 @@ func (mngr *ArtifactManager) FindCommitOrReference(refOrCommit string) (string, 
 		}
 	}
 
-	return "", ErrReferenceNotFound
+	return "", ReferenceNotFoundError{
+		Ref: refOrCommit,
+	}
 }
 
 // Fetch downloads all the metadata from repository
@@ -370,7 +375,11 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 		}
 		commitHash, err = mngr.GetRef(refPath)
 		if err != nil {
-			return ErrReferenceNotFound
+			if refOrCommit == RefLatest {
+				return errors.New("repository not found. No commit is found in the repository")
+			} else {
+				return ReferenceNotFoundError{Ref: refOrCommit}
+			}
 		}
 	}
 

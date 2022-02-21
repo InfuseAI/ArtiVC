@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/infuseai/art/internal/core"
+	"github.com/infuseai/art/internal/repository"
 	"github.com/spf13/cobra"
 )
 
@@ -45,7 +46,14 @@ var configCommand = &cobra.Command{
 				os.Exit(1)
 			}
 		case 2:
-			config.Set(args[0], args[1])
+			key := args[0]
+			value := args[1]
+			if key == "repo.url" {
+				_, err := repository.NewRepository(value)
+				exitWithError(err)
+			}
+
+			config.Set(key, value)
 			err := config.Save()
 			if err != nil {
 				fmt.Println(err)

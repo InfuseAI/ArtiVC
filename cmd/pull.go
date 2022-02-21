@@ -5,8 +5,6 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/infuseai/art/internal/core"
 	"github.com/spf13/cobra"
 )
@@ -25,19 +23,20 @@ var pullCmd = &cobra.Command{
 
 		config, err := core.LoadConfig("")
 		if err != nil {
-			fmt.Printf("pull %v \n", err)
+			exitWithError(err)
 			return
 		}
 
 		mngr, err := core.NewArtifactManager(config)
 		if err != nil {
-			fmt.Printf("pull %v \n", err)
+			exitWithError(err)
 			return
 		}
 
 		err = mngr.Pull(core.PullOptions{Fetch: true})
 		if err != nil {
-			fmt.Printf("pull %v \n", err)
+			exitWithError(err)
+			return
 		}
 	},
 }

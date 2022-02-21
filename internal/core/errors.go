@@ -1,8 +1,19 @@
 package core
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 var (
-	ErrReferenceNotFound = errors.New("reference not found")
 	ErrWorkspaceNotFound = errors.New("workspace not found")
 )
+
+type ReferenceNotFoundError struct {
+	Ref string
+	Err error
+}
+
+func (err ReferenceNotFoundError) Error() string {
+	return fmt.Sprintf("reference not found: %s", err.Ref)
+}

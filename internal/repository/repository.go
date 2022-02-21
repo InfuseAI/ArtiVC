@@ -1,6 +1,10 @@
 package repository
 
-import "io/fs"
+import (
+	"io/fs"
+	neturl "net/url"
+	"strings"
+)
 
 type ListEntry fs.DirEntry
 type FileInfo fs.FileInfo
@@ -13,8 +17,30 @@ type Repository interface {
 	List(repoPath string) ([]ListEntry, error)
 }
 
-func NewRepository(repo string) Repository {
-	return &LocalFileSystemRepository{
-		RepoDir: repo,
+func NewRepository(repo string) (Repository, error) {
+	if strings.HasPrefix(repo, "/") {
+		repo = "file://" + repo
+	}
+
+	url, err := neturl.Parse(repo)
+	if err != nil {
+		return nil, err
+	}
+
+	if url.Scheme == "" {
+		return nil, UnsupportedRepositoryError{
+			Message: "unsupported repository. Relative path is not allowed as a repository path",
+		}
+	}
+
+	switch url.Scheme {
+	case "file":
+		return &LocalFileSystemRepository{
+			RepoDir: url.Path,
+		}, nil
+	default:
+		return nil, UnsupportedRepositoryError{
+			Message: "unsupported repository",
+		}
 	}
 }

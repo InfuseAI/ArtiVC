@@ -5,7 +5,6 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -40,21 +39,21 @@ var getCmd = &cobra.Command{
 		repoUrl, ref, err := parseRepoStr(args[0])
 		baseDir, err := cmd.Flags().GetString("output")
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "error: i%v\n", err)
+			exitWithError(err)
 			return
 		}
 
 		if baseDir == "" {
 			comps := strings.Split(repoUrl, "/")
 			if len(comps) == 0 {
-				fmt.Fprintf(os.Stderr, "error: invlaid path: %v\n", repoUrl)
+				exitWithFormat("invlaid path: %v\n", repoUrl)
 				return
 			}
 			baseDir = comps[len(comps)-1]
 		}
 		baseDir, err = filepath.Abs(baseDir)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			exitWithError(err)
 			return
 		}
 
@@ -65,7 +64,7 @@ var getCmd = &cobra.Command{
 
 		mngr, err := core.NewArtifactManager(config)
 		if err != nil {
-			fmt.Printf("pull %v \n", err)
+			exitWithError(err)
 			return
 		}
 
@@ -76,7 +75,7 @@ var getCmd = &cobra.Command{
 
 		err = mngr.Pull(options)
 		if err != nil {
-			fmt.Printf("pull %v \n", err)
+			exitWithError(err)
 			return
 		}
 	},

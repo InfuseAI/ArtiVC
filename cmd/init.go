@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/infuseai/art/internal/core"
+	"github.com/infuseai/art/internal/repository"
 	"github.com/spf13/cobra"
 )
 
@@ -24,6 +25,13 @@ var initCommand = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		cwd, _ := os.Getwd()
 		repo := args[0]
+
+		_, err := repository.NewRepository(repo)
+		if err != nil {
+			exitWithError(err)
+			return
+		}
+
 		core.InitWorkspace(cwd, repo)
 	},
 }
