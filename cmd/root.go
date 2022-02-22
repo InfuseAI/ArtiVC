@@ -60,6 +60,7 @@ func init() {
 
 	addCommandWithGroup("",
 		versionCommand,
+		docsCommand,
 	)
 }
 
