@@ -7,6 +7,7 @@ import (
 
 var (
 	ErrWorkspaceNotFound = errors.New("not an art workspace")
+	ErrEmptyRepository   = errors.New("no commit is found in the repository. please push data to repository first")
 )
 
 type ReferenceNotFoundError struct {

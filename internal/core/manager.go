@@ -239,8 +239,12 @@ func (mngr *ArtifactManager) FindCommitOrReference(refOrCommit string) (string, 
 		}
 	}
 
-	return "", ReferenceNotFoundError{
-		Ref: refOrCommit,
+	if refOrCommit == RefLatest {
+		return "", ErrEmptyRepository
+	} else {
+		return "", ReferenceNotFoundError{
+			Ref: refOrCommit,
+		}
 	}
 }
 
@@ -403,7 +407,7 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 		commitHash, err = mngr.GetRef(refPath)
 		if err != nil {
 			if refOrCommit == RefLatest {
-				return errors.New("repository not found. No commit is found in the repository")
+				return ErrEmptyRepository
 			} else {
 				return ReferenceNotFoundError{Ref: refOrCommit}
 			}
@@ -692,7 +696,7 @@ func (mngr *ArtifactManager) Log(refOrCommit string) error {
 			ref:     RefLatest,
 		}}
 	} else {
-		return err
+		return ErrEmptyRepository
 	}
 
 	// get reference
