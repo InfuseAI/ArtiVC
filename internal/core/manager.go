@@ -317,7 +317,7 @@ func (mngr *ArtifactManager) Push(options PushOptions) error {
 		}
 		fmt.Printf("\rupload objects: (%d/%d)", uploaded, total)
 		if skipped > 0 {
-			fmt.Printf(" skipped: %d", skipped)
+			fmt.Printf(", skipped: %d", skipped)
 		}
 	}
 	fmt.Printf("\ntotal %d objects uploaded\n", total-skipped)
@@ -469,12 +469,11 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 			skipped++
 		}
 
+		downloaded++
 		fmt.Printf("\rdownload objects: (%d/%d)", downloaded, total)
 		if skipped > 0 {
-			fmt.Printf(" skipped: %d", skipped)
+			fmt.Printf(", skipped: %d", skipped)
 		}
-
-		downloaded++
 	}
 	fmt.Printf("\ntotal %d objects downloaded\n", total-skipped)
 
