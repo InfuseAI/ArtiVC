@@ -33,7 +33,7 @@ art diff v0.1.0 v0.2.0`,
 			exitWithError(err)
 		}
 
-		err = mngr.Diff(core.DiffOptions{
+		_, err = mngr.Diff(core.DiffOptions{
 			LeftRef:  left,
 			RightRef: right,
 		})

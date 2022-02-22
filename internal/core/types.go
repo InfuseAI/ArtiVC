@@ -46,6 +46,17 @@ type DiffOptions struct {
 	RightCommit *Commit
 }
 
+type DiffResult struct {
+	Added   int
+	Deleted int
+	Changed int
+	Renamed int
+}
+
+func (r DiffResult) IsChanged() bool {
+	return r.Added+r.Deleted+r.Changed+r.Renamed > 0
+}
+
 type BlobDownloadResult struct {
 	// File not changed. Skip the download
 	Skip bool

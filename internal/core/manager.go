@@ -290,12 +290,16 @@ func (mngr *ArtifactManager) Push(options PushOptions) error {
 		return err
 	}
 
-	err = mngr.Diff(DiffOptions{
+	result, err := mngr.Diff(DiffOptions{
 		LeftRef:     RefLatest,
 		RightCommit: commit,
 	})
-	if err != nil && err != ErrEmptyRepository {
-		return err
+	if err != nil {
+		if err != ErrEmptyRepository {
+			return err
+		}
+	} else if !result.IsChanged() {
+		return nil
 	}
 
 	if options.DryRun {
@@ -438,12 +442,15 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 
 	// Diff
 	if commitLocal != nil {
-		err = mngr.Diff(DiffOptions{
+		result, err := mngr.Diff(DiffOptions{
 			LeftCommit:  commitLocal,
 			RightCommit: commitRemote,
 		})
 		if err != nil {
 			return err
+		}
+		if !result.IsChanged() {
+			return nil
 		}
 	}
 
@@ -552,7 +559,8 @@ func (mngr *ArtifactManager) List(refOrCommit string) error {
 	return nil
 }
 
-func (mngr *ArtifactManager) Diff(option DiffOptions) error {
+func (mngr *ArtifactManager) Diff(option DiffOptions) (DiffResult, error) {
+	result := DiffResult{}
 	type DiffEntry struct {
 		left  *BlobMetaData
 		right *BlobMetaData
@@ -562,19 +570,19 @@ func (mngr *ArtifactManager) Diff(option DiffOptions) error {
 	var commitHash string
 	var commit *Commit
 	var err error
-	var added, deleted, changed int
+	var added, deleted, changed, renamed int
 
 	// left
 	commit = option.LeftCommit
 	if commit == nil {
 		commitHash, err = mngr.FindCommitOrReference(option.LeftRef)
 		if err != nil {
-			return err
+			return DiffResult{}, err
 		}
 
 		commit, err = mngr.GetCommit(commitHash)
 		if err != nil {
-			return err
+			return result, err
 		}
 	}
 	for i, blob := range commit.Blobs {
@@ -588,12 +596,12 @@ func (mngr *ArtifactManager) Diff(option DiffOptions) error {
 	if commit == nil {
 		commitHash, err = mngr.FindCommitOrReference(option.RightRef)
 		if err != nil {
-			return err
+			return result, err
 		}
 
 		commit, err = mngr.GetCommit(commitHash)
 		if err != nil {
-			return err
+			return result, err
 		}
 	}
 
@@ -683,18 +691,24 @@ func (mngr *ArtifactManager) Diff(option DiffOptions) error {
 	for _, paths := range mapRenamed {
 		for _, path := range paths {
 			color.HiYellow(fmt.Sprintf("R %s\n", path))
-			changed++
+			renamed++
 		}
 	}
 
 	// show the summary
-	if added == 0 && deleted == 0 && changed == 0 {
+	if added == 0 && deleted == 0 && changed == 0 && renamed == 0 {
 		fmt.Println("no changed")
 	} else {
-		fmt.Printf("%d changed, %d added(+), %d deleted(-)\n", changed, added, deleted)
+		fmt.Printf("%d changed, %d added(+), %d deleted(-)\n", changed+renamed, added, deleted)
+
 	}
 
-	return nil
+	return DiffResult{
+		Added:   added,
+		Deleted: deleted,
+		Renamed: renamed,
+		Changed: changed,
+	}, nil
 }
 
 func (mngr *ArtifactManager) Log(refOrCommit string) error {
