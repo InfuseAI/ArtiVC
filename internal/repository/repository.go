@@ -37,7 +37,7 @@ func NewRepository(repo string) (Repository, error) {
 	case "file":
 		return NewLocalFileSystemRepository(url.Path)
 	case "s3":
-		return NewS3Repository(url.Host)
+		return NewS3Repository(url.Host, url.Path)
 	default:
 		return nil, UnsupportedRepositoryError{
 			Message: "unsupported repository",

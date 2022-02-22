@@ -6,19 +6,25 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 type S3Repository struct {
-	Bucket string
-	client *s3.Client
+	Bucket   string
+	BasePath string
+	client   *s3.Client
 }
 
-func NewS3Repository(bucket string) (*S3Repository, error) {
+func NewS3Repository(bucket, basePath string) (*S3Repository, error) {
+	basePath = strings.TrimPrefix(basePath, "/")
+
 	return &S3Repository{
-		Bucket: bucket,
+		Bucket:   bucket,
+		BasePath: basePath,
 	}, nil
 }
 
@@ -42,9 +48,10 @@ func (repo *S3Repository) Upload(localPath, repoPath string) error {
 	}
 	defer source.Close()
 
+	key := filepath.Join(repo.BasePath, repoPath)
 	input := &s3.PutObjectInput{
 		Bucket: &repo.Bucket,
-		Key:    &repoPath,
+		Key:    &key,
 		Body:   source,
 	}
 
@@ -57,9 +64,10 @@ func (repo *S3Repository) Download(repoPath, localPath string) error {
 		repo.init()
 	}
 
+	key := filepath.Join(repo.BasePath, repoPath)
 	input := &s3.GetObjectInput{
 		Bucket: &repo.Bucket,
-		Key:    &repoPath,
+		Key:    &key,
 	}
 
 	output, err := repo.client.GetObject(context.TODO(), input)
@@ -83,9 +91,10 @@ func (repo *S3Repository) Delete(repoPath string) error {
 		repo.init()
 	}
 
+	key := filepath.Join(repo.BasePath, repoPath)
 	input := &s3.DeleteObjectInput{
 		Bucket: &repo.Bucket,
-		Key:    &repoPath,
+		Key:    &key,
 	}
 
 	_, err := repo.client.DeleteObject(context.TODO(), input)
@@ -97,9 +106,10 @@ func (repo *S3Repository) Stat(repoPath string) (FileInfo, error) {
 		repo.init()
 	}
 
+	key := filepath.Join(repo.BasePath, repoPath)
 	input := &s3.HeadObjectInput{
 		Bucket: &repo.Bucket,
-		Key:    &repoPath,
+		Key:    &key,
 	}
 	_, err := repo.client.HeadObject(context.TODO(), input)
 	return nil, err
@@ -110,9 +120,10 @@ func (repo *S3Repository) List(repoPath string) ([]ListEntry, error) {
 		repo.init()
 	}
 
+	fullRepoPath := filepath.Join(repo.BasePath, repoPath)
 	input := &s3.ListObjectsV2Input{
 		Bucket: &repo.Bucket,
-		Prefix: &repoPath,
+		Prefix: &fullRepoPath,
 	}
 	output, err := repo.client.ListObjectsV2(context.TODO(), input)
 	if err != nil {
@@ -122,7 +133,7 @@ func (repo *S3Repository) List(repoPath string) ([]ListEntry, error) {
 	entries := make([]ListEntry, 0)
 	for _, obj := range output.Contents {
 		key := *obj.Key
-		entry := S3DirEntry{name: key[len(repoPath)+1:]}
+		entry := S3DirEntry{name: key[len(fullRepoPath)+1:]}
 		entries = append(entries, &entry)
 	}
 	return entries, err
