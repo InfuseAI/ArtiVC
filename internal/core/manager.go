@@ -279,15 +279,27 @@ func (mngr *ArtifactManager) Fetch() error {
 	return nil
 }
 
-func (mngr *ArtifactManager) Push(option PushOptions) error {
+func (mngr *ArtifactManager) Push(options PushOptions) error {
 	parent, err := mngr.GetRef(RefLatest)
 	if err != nil {
 		parent = ""
 	}
 
-	commit, err := mngr.MakeWorkspaceCommit(parent, option.Message)
+	commit, err := mngr.MakeWorkspaceCommit(parent, options.Message)
 	if err != nil {
 		return err
+	}
+
+	err = mngr.Diff(DiffOptions{
+		LeftRef:     RefLatest,
+		RightCommit: commit,
+	})
+	if err != nil && err != ErrEmptyRepository {
+		return err
+	}
+
+	if options.DryRun {
+		return nil
 	}
 
 	total := len(commit.Blobs)
@@ -315,8 +327,8 @@ func (mngr *ArtifactManager) Push(option PushOptions) error {
 	mngr.Commit(*commit)
 	fmt.Println("update ref: latest -> " + hash)
 	mngr.AddRef(RefLatest, hash)
-	if option.Tag != nil {
-		tag := *option.Tag
+	if options.Tag != nil {
+		tag := *options.Tag
 		mngr.AddTag(hash, tag)
 		fmt.Println("add tag: " + tag + " -> " + hash)
 	}
@@ -336,12 +348,10 @@ func (mngr *ArtifactManager) MakeWorkspaceCommit(parent string, message *string)
 	tasks := []executor.TaskFunc{}
 	mutex := sync.Mutex{}
 	err := filepath.Walk(baseDir, func(absPath string, info fs.FileInfo, err error) error {
+		if err != nil {
+			return ErrWorkspaceNotFound
+		}
 		task := func(ctx context.Context) error {
-			if err != nil {
-				fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", absPath, err)
-				return err
-			}
-
 			if info.IsDir() {
 				return nil
 			}
@@ -396,6 +406,7 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 		refOrCommit = *options.RefOrCommit
 	}
 
+	// Make the remote commit
 	commitHash, err := mngr.FindCommitOrReference(refOrCommit)
 	if err != nil {
 		var refPath string
@@ -414,15 +425,36 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 		}
 	}
 
-	commit, err := mngr.GetCommit(commitHash)
-	if err != nil {
+	commitRemote, err := mngr.GetCommit(commitHash)
+	if err != nil && err != ErrEmptyRepository {
 		return err
 	}
 
-	total := len(commit.Blobs)
+	// Get the local commit hash
+	commitLocal, err := mngr.MakeWorkspaceCommit("", nil)
+	if err != nil && err != ErrWorkspaceNotFound {
+		return err
+	}
+
+	// Diff
+	if commitLocal != nil {
+		err = mngr.Diff(DiffOptions{
+			LeftCommit:  commitLocal,
+			RightCommit: commitRemote,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	if options.DryRun {
+		return nil
+	}
+
+	total := len(commitRemote.Blobs)
 	downloaded := 0
 	skipped := 0
-	for _, blob := range commit.Blobs {
+	for _, blob := range commitRemote.Blobs {
 		err := mkdirsForFile(path.Join(mngr.baseDir, blob.Path))
 		if err != nil {
 			return err
@@ -521,7 +553,7 @@ func (mngr *ArtifactManager) List(refOrCommit string) error {
 	return nil
 }
 
-func (mngr *ArtifactManager) Diff(leftRef, rightRef string) error {
+func (mngr *ArtifactManager) Diff(option DiffOptions) error {
 	type DiffEntry struct {
 		left  *BlobMetaData
 		right *BlobMetaData
@@ -533,22 +565,19 @@ func (mngr *ArtifactManager) Diff(leftRef, rightRef string) error {
 	var err error
 	var added, deleted, changed int
 
-	err = mngr.Fetch()
-	if err != nil {
-		return err
-	}
-
 	// left
-	commitHash, err = mngr.FindCommitOrReference(leftRef)
-	if err != nil {
-		return err
-	}
+	commit = option.LeftCommit
+	if commit == nil {
+		commitHash, err = mngr.FindCommitOrReference(option.LeftRef)
+		if err != nil {
+			return err
+		}
 
-	commit, err = mngr.GetCommit(commitHash)
-	if err != nil {
-		return err
+		commit, err = mngr.GetCommit(commitHash)
+		if err != nil {
+			return err
+		}
 	}
-
 	for i, blob := range commit.Blobs {
 		entry := entries[blob.Path]
 		entry.left = &commit.Blobs[i]
@@ -556,13 +585,9 @@ func (mngr *ArtifactManager) Diff(leftRef, rightRef string) error {
 	}
 
 	// right
-	if rightRef == RefLocal {
-		commit, err = mngr.MakeWorkspaceCommit("", nil)
-		if err != nil {
-			return err
-		}
-	} else {
-		commitHash, err = mngr.FindCommitOrReference(rightRef)
+	commit = option.RightCommit
+	if commit == nil {
+		commitHash, err = mngr.FindCommitOrReference(option.RightRef)
 		if err != nil {
 			return err
 		}

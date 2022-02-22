@@ -12,29 +12,12 @@ import (
 var diffCommand = &cobra.Command{
 	Use:   "diff",
 	Short: "Diff workspace/commits/references",
-	Long: `List files in the repository. For example:
-
-# list the files for the latest version
-art list
-
-# list the files for the specific version
-art list v1.0.0`,
-	Args: cobra.RangeArgs(0, 2),
+	Example: `# Diff two version
+art diff v0.1.0 v0.2.0`,
+	Args: cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		var left, right string
-		if len(args) == 0 {
-			left = core.RefLatest
-			right = core.RefLocal
-		} else if len(args) == 1 {
-			left = args[0]
-			right = core.RefLocal
-		} else if len(args) == 2 {
-			left = args[0]
-			right = args[1]
-		} else {
-			exitWithFormat("argument number cannot be more than 2\n")
-		}
-
+		left := args[0]
+		right := args[1]
 		config, err := core.LoadConfig("")
 		if err != nil {
 			exitWithError(err)
@@ -45,7 +28,15 @@ art list v1.0.0`,
 			exitWithError(err)
 		}
 
-		err = mngr.Diff(left, right)
+		err = mngr.Fetch()
+		if err != nil {
+			exitWithError(err)
+		}
+
+		err = mngr.Diff(core.DiffOptions{
+			LeftRef:  left,
+			RightRef: right,
+		})
 		if err != nil {
 			exitWithError(err)
 		}

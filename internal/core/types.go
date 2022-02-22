@@ -28,13 +28,22 @@ type Commit struct {
 }
 
 type PushOptions struct {
+	DryRun  bool
 	Message *string
 	Tag     *string
 }
 
 type PullOptions struct {
+	DryRun      bool
 	Fetch       bool
 	RefOrCommit *string
+}
+
+type DiffOptions struct {
+	LeftRef     string
+	LeftCommit  *Commit
+	RightRef    string
+	RightCommit *Commit
 }
 
 type BlobDownloadResult struct {

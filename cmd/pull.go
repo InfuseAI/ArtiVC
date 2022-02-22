@@ -33,7 +33,13 @@ var pullCmd = &cobra.Command{
 			return
 		}
 
-		err = mngr.Pull(core.PullOptions{Fetch: true})
+		option := core.PullOptions{Fetch: true}
+		option.DryRun, err = cmd.Flags().GetBool("dry-run")
+		if err != nil {
+			exitWithError(err)
+		}
+
+		err = mngr.Pull(option)
 		if err != nil {
 			exitWithError(err)
 			return
@@ -42,4 +48,5 @@ var pullCmd = &cobra.Command{
 }
 
 func init() {
+	pullCmd.Flags().Bool("dry-run", false, "Dry run")
 }

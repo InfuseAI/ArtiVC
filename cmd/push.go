@@ -38,6 +38,11 @@ var pushCmd = &cobra.Command{
 			option.Message = &message
 		}
 
+		option.DryRun, err = cmd.Flags().GetBool("dry-run")
+		if err != nil {
+			exitWithError(err)
+		}
+
 		// push
 		mngr, err := core.NewArtifactManager(config)
 		if err != nil {
@@ -53,4 +58,5 @@ var pushCmd = &cobra.Command{
 
 func init() {
 	pushCmd.Flags().StringP("message", "m", "", "Commit meessage")
+	pushCmd.Flags().Bool("dry-run", false, "Dry run")
 }
