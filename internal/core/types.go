@@ -37,6 +37,16 @@ type PullOptions struct {
 	RefOrCommit *string
 }
 
+type BlobDownloadResult struct {
+	// File not changed. Skip the download
+	Skip bool
+}
+
+type BlobUploadResult struct {
+	// Blob exists in ther repo. Skip the upload
+	Skip bool
+}
+
 func MakeBlobMetadata(baseDir string, path string) (BlobMetaData, error) {
 	fullPath := filepath.Join(baseDir, path)
 	hash, _ := Sha1SumFromFile(fullPath)

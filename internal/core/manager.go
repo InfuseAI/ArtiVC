@@ -66,34 +66,33 @@ func NewArtifactManager(config ArtConfig) (*ArtifactManager, error) {
 	return &ArtifactManager{baseDir: baseDir, repo: repo, metadataDir: metadataDir}, nil
 }
 
-func (mngr *ArtifactManager) UploadBlob(metadata BlobMetaData) error {
+func (mngr *ArtifactManager) UploadBlob(metadata BlobMetaData) (BlobUploadResult, error) {
 	repoPath := MakeObjectPath(metadata.Hash)
 	_, err := mngr.repo.Stat(repoPath)
 	if err == nil {
-		fmt.Printf("skip:   %s\n", metadata.Path)
-		return nil
-	} else {
-		fmt.Printf("upload: %s\n", metadata.Path)
+		return BlobUploadResult{Skip: true}, nil
 	}
 
 	blobPath := filepath.Join(mngr.baseDir, metadata.Path)
 	err = mngr.repo.Upload(blobPath, repoPath)
-	return err
+	return BlobUploadResult{Skip: false}, err
 }
 
-func (mngr *ArtifactManager) DownloadBlob(metadata BlobMetaData) error {
+func (mngr *ArtifactManager) DownloadBlob(metadata BlobMetaData) (BlobDownloadResult, error) {
 	hash, err := Sha1SumFromFile(path.Join(mngr.baseDir, metadata.Path))
 	if err == nil && hash == metadata.Hash {
-		fmt.Printf("Skip:     %s\n", metadata.Path)
-		return nil
-	} else {
-		fmt.Printf("download: %s\n", metadata.Path)
+		return BlobDownloadResult{Skip: true}, nil
 	}
 
+	// fmt.Printf("Skip:     %s\n", metadata.Path)
+	// fmt.Printf("download: %s\n", metadata.Path)
 	blobPath := filepath.Join(mngr.baseDir, metadata.Path)
 	repoPath := MakeObjectPath(metadata.Hash)
 	err = mngr.repo.Download(repoPath, blobPath)
-	return err
+	if err != nil {
+		return BlobDownloadResult{}, err
+	}
+	return BlobDownloadResult{Skip: false}, nil
 }
 
 func (mngr *ArtifactManager) Commit(commit Commit) error {
@@ -287,19 +286,35 @@ func (mngr *ArtifactManager) Push(option PushOptions) error {
 		return err
 	}
 
+	total := len(commit.Blobs)
+	uploaded := 0
+	skipped := 0
+
 	for _, metadata := range commit.Blobs {
-		err := mngr.UploadBlob(metadata)
+		result, err := mngr.UploadBlob(metadata)
+		if result.Skip {
+			skipped++
+		}
+		uploaded++
 		if err != nil {
-			return fmt.Errorf("cannot upload blob: %s\n", metadata.Path)
+			return fmt.Errorf("cannot upload blob: %s", metadata.Path)
+		}
+		fmt.Printf("\rupload objects: (%d/%d)", uploaded, total)
+		if skipped > 0 {
+			fmt.Printf(" skipped: %d", skipped)
 		}
 	}
+	fmt.Printf("\ntotal %d objects uploaded\n", total-skipped)
 
 	_, hash := MakeCommitMetadata(commit)
+	fmt.Println("create commit: " + hash)
 	mngr.Commit(*commit)
-
+	fmt.Println("update ref: latest -> " + hash)
 	mngr.AddRef(RefLatest, hash)
 	if option.Tag != nil {
-		mngr.AddTag(hash, *option.Tag)
+		tag := *option.Tag
+		mngr.AddTag(hash, tag)
+		fmt.Println("add tag: " + tag + " -> " + hash)
 	}
 
 	return nil
@@ -399,17 +414,33 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 	if err != nil {
 		return err
 	}
+
+	total := len(commit.Blobs)
+	downloaded := 0
+	skipped := 0
 	for _, blob := range commit.Blobs {
 		err := mkdirsForFile(path.Join(mngr.baseDir, blob.Path))
 		if err != nil {
 			return err
 		}
 
-		err = mngr.DownloadBlob(blob)
+		result, err := mngr.DownloadBlob(blob)
 		if err != nil {
 			return err
 		}
+
+		if result.Skip {
+			skipped++
+		}
+
+		fmt.Printf("\rdownload objects: (%d/%d)", downloaded, total)
+		if skipped > 0 {
+			fmt.Printf(" skipped: %d", skipped)
+		}
+
+		downloaded++
 	}
+	fmt.Printf("\ntotal %d objects downloaded\n", total-skipped)
 
 	return nil
 }
