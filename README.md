@@ -1,50 +1,62 @@
 # art
 
-Art is a version control system to manage artifacts. Artifact store is a crucial part of the machine learning project. We use it to store different versions of datasets or models. Art provides a better way to manage your artifact stored in local, NFS, or cloud object storage.
+Art is a version control system for large files. Artifact store is a crucial part of the machine learning project. We use it to store different versions of datasets or models. Art provides a better way to manage your artifact stored in local, NFS, or cloud object storage.
 
 *WARNING: This project is in a very early stage of development. There is still no workable release yet.*
 
 # Usage
-Get the latest version of the artifact
-```
-art download s3://bucket/path/to/artifact .
-```
+Download the latest version in the [release](https://github.com/InfuseAI/art/releases) page
 
-Get the artifact with a specific tag
-```
-art download s3://bucket/path/to/artifact@v1.4.0 .
-```
 
-Other commands
+- Put and get the latest version in one line
+  ```
+  art put /path/to/my/data s3://bucket/path/to/mydata
+  art get -o /tmp/mydata s3://bucket/path/to/mydata
+  ```
 
-```
-art
+- Put and get the artifact with a specific tag
+  ```
+  art put /path/to/my/data s3://bucket/path/to/mydata@v0.1.0
+  art get -o /tmp/mydata-v0.1.0 s3://bucket/path/to/mydata@v0.1.0
+  ```
 
-A version control system to manage artifacts.
+- Manage data in a workspace
 
-Usage:
-  art [command]
+  ```
+  cd /path/to/mydata
 
-Available Commands:
-  download    Download files from the remote repository
-  upload      Upload files to the remote repository
-  init        Init a folder as the local workspace of a repository
-  push        Push from the local workspace to the remote repository
-  pull        Pull the local workspace from the remote repository
-  diff        Diff the local workspace and the remote repository, or diff two different commits or tags
-  tag         Manage the tags
-  log         Print the commits  
-  help        Print the help
+  # init a workspace
+  art init s3://bucket/path/to/mydata
 
-```  
+  # pull latest data from the repository
+  art pull
+
+  # See the commit log
+  art log
+  
+  # Push the workspace data to remote
+  art push
+
+  # Tag the latest commit as v0.2.0
+  art tag v0.2.0
+  ```
+
+- For more information please see the command help
+  ```
+  art -h
+  art <subcommand> -h
+  ```  
 
 # Features
 
-- **No additional server required**: All you need is an NFS server or object store server, no more.
-- **Atomic upload**: For each upload of the artifact, no partial upload happens. It would be all or nothing.
-- **Reproducible**: All artifact information of a commit is stored in a single file and cannot be changed. There is no way to add/remove/modify a single file in a commit.
-- **Better storage**:  We use [content-addressable storage](https://en.wikipedia.org/wiki/Content-addressable_storage) to put the artifact files. For the same content of files, there is only one instance stored in the artifact repository. If a file has been uploaded by other commits, no upload is required again because we know the file is already there in the artifact repository.
-- **Integrity check**: All files are addressed by content hash, so the integrity check of files is by design
+- **No additional server required**: You only need one command, we turn your storage as versioned storage.
+- **Multiple backend support**: Currently, we support local and NFS. And we will support more storage in the future
+- **Http compatible**: If you make your s3 bucket public, you can expose your dataset by http
+  ```
+  art get -o /tmp/dataset https://mybucket.s3.ap-northeast-1.amazonaws.com/path/to/my/data@v0.1.0
+  ```
+- **Reproducible**: A commit is stored in a single file and cannot be changed. There is no way to add/remove/modify a single file in a commit.
+- **Smart storage and transfer**: For the same content of files, there is only one instance stored in the artifact repository. If a file has been uploaded by other commits, no upload is required because we know the file is already there in the repository. Under the hood, we use [content-addressable storage](https://en.wikipedia.org/wiki/Content-addressable_storage) to put the objects.
 
 
 # How it works
