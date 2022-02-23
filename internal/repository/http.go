@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -17,14 +18,8 @@ type HttpRepository struct {
 }
 
 func NewHttpRepository(repo string) (*HttpRepository, error) {
-	res, err := http.Head(repo)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode != 200 {
-		return nil, errors.New(fmt.Sprintf("status code: %d\n", res.StatusCode))
+	if !strings.HasSuffix(repo, "/") {
+		repo += "/"
 	}
 
 	return &HttpRepository{
@@ -37,7 +32,7 @@ func (repo *HttpRepository) Upload(localPath, repoPath string) error {
 }
 
 func (repo *HttpRepository) Download(repoPath, localPath string) error {
-	filePath, err := GetFilePath(repo.RepoUrl, repoPath)
+	filePath, err := getFilePath(repo.RepoUrl, repoPath)
 	if err != nil {
 		return err
 	}
@@ -68,7 +63,7 @@ func (repo *HttpRepository) Delete(repoPath string) error {
 }
 
 func (repo *HttpRepository) Stat(repoPath string) (FileInfo, error) {
-	filePath, err := GetFilePath(repo.RepoUrl, repoPath)
+	filePath, err := getFilePath(repo.RepoUrl, repoPath)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +101,7 @@ func (repo *HttpRepository) List(repoPath string) ([]ListEntry, error) {
 	return nil, errors.New("List is not supported in Http repository")
 }
 
-func GetFilePath(repoPath, filePath string) (string, error) {
+func getFilePath(repoPath, filePath string) (string, error) {
 	base, err := url.Parse(repoPath)
 	if err != nil {
 		return "", err
