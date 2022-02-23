@@ -36,6 +36,7 @@ type PushOptions struct {
 type PullOptions struct {
 	DryRun      bool
 	Fetch       bool
+	Diff        bool
 	RefOrCommit *string
 }
 

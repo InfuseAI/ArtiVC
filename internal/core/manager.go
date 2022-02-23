@@ -297,6 +297,11 @@ func (mngr *ArtifactManager) Push(options PushOptions) error {
 	if err != nil {
 		if err != ErrEmptyRepository {
 			return err
+		} else {
+			mngr.Diff(DiffOptions{
+				LeftCommit:  mngr.MakeEmptyCommit(),
+				RightCommit: commit,
+			})
 		}
 	} else if !result.IsChanged() {
 		return nil
@@ -338,6 +343,15 @@ func (mngr *ArtifactManager) Push(options PushOptions) error {
 	}
 
 	return nil
+}
+
+func (mngr *ArtifactManager) MakeEmptyCommit() *Commit {
+	return &Commit{
+		CreatedAt: time.Now(),
+		Parent:    "",
+		Message:   nil,
+		Blobs:     []BlobMetaData{},
+	}
 }
 
 func (mngr *ArtifactManager) MakeWorkspaceCommit(parent string, message *string) (*Commit, error) {
@@ -417,7 +431,7 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 		if refOrCommit == RefLatest {
 			refPath = RefLatest
 		} else {
-			refPath = MakeTagPath(refOrCommit)
+			refPath = "tags/" + refOrCommit
 		}
 		commitHash, err = mngr.GetRef(refPath)
 		if err != nil {
@@ -441,7 +455,7 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 	}
 
 	// Diff
-	if commitLocal != nil {
+	if commitLocal != nil && options.Diff {
 		result, err := mngr.Diff(DiffOptions{
 			LeftCommit:  commitLocal,
 			RightCommit: commitRemote,
