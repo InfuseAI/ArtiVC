@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"errors"
 	"os"
+	"strings"
 
 	"github.com/infuseai/artiv/internal/core"
 	"github.com/infuseai/artiv/internal/repository"
@@ -21,6 +23,11 @@ var initCommand = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		cwd, _ := os.Getwd()
 		repo := args[0]
+
+		if strings.HasPrefix(repo, "http") {
+			exitWithError(errors.New("init not support under http(s) repo"))
+			return
+		}
 
 		_, err := repository.NewRepository(repo)
 		if err != nil {
