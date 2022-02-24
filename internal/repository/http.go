@@ -44,7 +44,7 @@ func (repo *HttpRepository) Download(repoPath, localPath string) error {
 	defer res.Body.Close()
 
 	if res.StatusCode != 200 {
-		return errors.New(fmt.Sprintf("status code: %d\n", res.StatusCode))
+		return fmt.Errorf("status code: %d", res.StatusCode)
 	}
 
 	outputFile, err := os.Create(localPath)
@@ -75,7 +75,7 @@ func (repo *HttpRepository) Stat(repoPath string) (FileInfo, error) {
 	defer res.Body.Close()
 
 	if res.StatusCode != 200 {
-		return nil, errors.New(fmt.Sprintf("status code: %d\n", res.StatusCode))
+		return nil, fmt.Errorf("status code: %d", res.StatusCode)
 	}
 
 	fileSize, err := strconv.ParseInt(res.Header["Content-Length"][0], 10, 64)

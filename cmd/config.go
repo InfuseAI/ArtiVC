@@ -48,7 +48,7 @@ var configCommand = &cobra.Command{
 			value := args[1]
 			if key == "repo.url" {
 				if strings.HasPrefix(value, "http") {
-					exitWithError(errors.New("init not support under http(s) repo"))
+					exitWithError(errors.New("http(s) repository is not supported"))
 					return
 				}
 
