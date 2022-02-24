@@ -1,12 +1,14 @@
 package core
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/BurntSushi/toml"
@@ -200,4 +202,49 @@ func (config *ArtConfig) Save() error {
 	}
 
 	return nil
+}
+
+type ArtIgnore struct {
+	patterns []string
+}
+
+func (i ArtIgnore) ShouldIgnore(path string) bool {
+	for _, p := range i.patterns {
+		matched, err := regexp.MatchString(p, path)
+		if matched {
+			//fmt.Printf("I %s %s\n", path, p)
+			return true
+		}
+		if err != nil {
+			// TODO print warning
+		}
+	}
+	return false
+}
+
+func NewArtIgnore(dir string) ArtIgnore {
+	artIgnorePath := path.Join(dir, ".artignore")
+	file, err := os.Open(artIgnorePath)
+	artIgnore := ArtIgnore{
+		patterns: []string{},
+	}
+	if err != nil {
+		// return empty ignore
+		return artIgnore
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		text := strings.TrimSpace(scanner.Text())
+
+		// skip # comment line
+		if strings.IndexAny(text, "#") == 0 {
+			continue
+		}
+
+		artIgnore.patterns = append(artIgnore.patterns, text)
+	}
+
+	return artIgnore
 }

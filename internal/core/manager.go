@@ -365,6 +365,7 @@ func (mngr *ArtifactManager) MakeWorkspaceCommit(parent string, message *string)
 
 	tasks := []executor.TaskFunc{}
 	mutex := sync.Mutex{}
+
 	err := filepath.Walk(baseDir, func(absPath string, info fs.FileInfo, err error) error {
 		if err != nil {
 			return ErrWorkspaceNotFound
@@ -647,10 +648,15 @@ func (mngr *ArtifactManager) Diff(option DiffOptions) (DiffResult, error) {
 
 	}
 
+	artIgnore := NewArtIgnore(mngr.baseDir)
+
 	for _, path := range paths {
 		entry := entries[path]
 		if entry.left == nil && entry.right != nil {
-			mapAdded[entry.right.Hash] = myappend(mapAdded[entry.right.Hash], path)
+			// ignore added when the path is ignored
+			if !artIgnore.ShouldIgnore(path) {
+				mapAdded[entry.right.Hash] = myappend(mapAdded[entry.right.Hash], path)
+			}
 		} else if entry.left != nil && entry.right == nil {
 			mapDeleted[entry.left.Hash] = myappend(mapDeleted[entry.left.Hash], path)
 		} else if entry.left.Hash != entry.right.Hash {

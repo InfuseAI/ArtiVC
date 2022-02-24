@@ -26,3 +26,5 @@ bin
 
 .idea
 generated_docs
+.art
+.artignore
