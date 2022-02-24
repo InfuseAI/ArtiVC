@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	ErrWorkspaceNotFound = errors.New("not an art workspace")
+	ErrWorkspaceNotFound = errors.New("not a workspace")
 	ErrEmptyRepository   = errors.New("no commit is found in the repository. please push data to repository first")
 )
 

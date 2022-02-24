@@ -1,11 +1,11 @@
-# art
+# ArtiV
 
-Art is a version control system for large files. Artifact store is a crucial part of the machine learning project. We use it to store different versions of datasets or models. Art provides a better way to manage your artifact stored in local, NFS, or cloud object storage.
+ArtiV is a version control system for large files. Artifact store is a crucial part of the machine learning project. We use it to store different versions of datasets or models. ArtiV provides a better way to manage your artifact stored in local, NFS, or cloud object storage.
 
 *WARNING: This project is in a very early stage of development. There is still no workable release yet.*
 
 # Usage
-Download the latest version in the [release](https://github.com/InfuseAI/art/releases) page
+Download the latest version in the [release](https://github.com/InfuseAI/ArtiV/releases) page
 
 
 - Put and get the latest version in one line
@@ -164,13 +164,13 @@ There are good solutions like [git-lfs](https://git-lfs.github.com/) or [dvc](ht
 ### Q: Can we do the versioning with multiple datasets or models?
 Yes. Just create different repositories with different prefixes in the same s3 bucket or different folders in NFS
 
-### Q: What storage does art support?
+### Q: What storage does ArtiV support?
 Currently, all are under development. We hope we can support local, NFS, AWS S3, GCS(Google Cloud Storage), Azure Blob Storage in the future.
 
 ### Q: How to version a dataset used by the training code versioned by a git repository?
 We will provide a file (maybe named `Artfile`) to download artifacts to the speicified folders. Just like the way we manage the package dependency by `requirements.txt` in a python project.
 
-# Art and MLOps
+# ArtiV and MLOps
 
 Machine learning application is a data-driven approach to solving problems. The MLOps is a methodology to has a feedback loop from data, model training, evaluation, model publish, deploy, monitoring. There are three core components in an ML application.
 

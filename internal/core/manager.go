@@ -16,8 +16,8 @@ import (
 	"time"
 
 	"github.com/fatih/color"
-	"github.com/infuseai/art/internal/executor"
-	"github.com/infuseai/art/internal/repository"
+	"github.com/infuseai/artiv/internal/executor"
+	"github.com/infuseai/artiv/internal/repository"
 )
 
 type ArtifactManager struct {
@@ -26,7 +26,7 @@ type ArtifactManager struct {
 	baseDir string // the workspace base dir
 
 	/* the path to store the metadata of the repository.
-	If it is in an art workspace, the path should be "${baseDir}/.art"*/
+	If it is in a workspace, the path should be "${baseDir}/.art"*/
 	metadataDir string
 
 	// repository

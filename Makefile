@@ -10,9 +10,9 @@ ifeq ($(VERSION),)
 VERSION := $(shell echo $${GITHUB_REF_NAME})
 endif
 
-LDFLAGS += -X github.com/infuseai/art/cmd.tagVersion=${VERSION}
-LDFLAGS += -X github.com/infuseai/art/cmd.gitCommit=${GIT_COMMIT}
-LDFLAGS += -X github.com/infuseai/art/cmd.gitTreeState=${GIT_DIRTY}
+LDFLAGS += -X github.com/infuseai/artiviv/cmd.tagVersion=${VERSION}
+LDFLAGS += -X github.com/infuseai/artiviv/cmd.gitCommit=${GIT_COMMIT}
+LDFLAGS += -X github.com/infuseai/artiviv/cmd.gitTreeState=${GIT_DIRTY}
 LDFLAGS += $(EXT_LDFLAGS)
 
 

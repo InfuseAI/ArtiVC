@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/infuseai/art/internal/core"
+	"github.com/infuseai/artiv/internal/core"
 	"github.com/spf13/cobra"
 )
 

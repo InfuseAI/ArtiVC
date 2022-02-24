@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/infuseai/art/internal/core"
+	"github.com/infuseai/artiv/internal/core"
 	"github.com/spf13/cobra"
 )
 

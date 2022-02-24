@@ -1,4 +1,4 @@
-module github.com/infuseai/art
+module github.com/infuseai/artiv
 
 go 1.17
 

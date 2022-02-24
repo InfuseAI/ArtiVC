@@ -22,7 +22,7 @@ var rootCmd = &cobra.Command{
   art log
   art pull
 
-  For more information, please check https://github.com/infuseai/art`,
+  For more information, please check https://github.com/infuseai/artiv`,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

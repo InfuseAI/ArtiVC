@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/infuseai/art/internal/core"
-	"github.com/infuseai/art/internal/repository"
+	"github.com/infuseai/artiv/internal/core"
+	"github.com/infuseai/artiv/internal/repository"
 	"github.com/spf13/cobra"
 )
 
