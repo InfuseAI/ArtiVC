@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/infuseai/artiv/internal/core"
 	"github.com/infuseai/artiv/internal/repository"
@@ -45,6 +47,11 @@ var configCommand = &cobra.Command{
 			key := args[0]
 			value := args[1]
 			if key == "repo.url" {
+				if strings.HasPrefix(value, "http") {
+					exitWithError(errors.New("http(s) repository is not supported"))
+					return
+				}
+
 				_, err := repository.NewRepository(value)
 				exitWithError(err)
 			}

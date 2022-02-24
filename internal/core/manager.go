@@ -49,7 +49,7 @@ func NewArtifactManager(config ArtConfig) (*ArtifactManager, error) {
 
 	// init the metadata path
 	metadataDir := config.MetadataDir
-	if baseDir == "" {
+	if metadataDir == "" {
 		return nil, errors.New("no metadata specified")
 	}
 
