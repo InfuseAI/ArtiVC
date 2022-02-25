@@ -474,17 +474,14 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 		return err
 	}
 
-	if options.DryRun || !result.IsChanged() {
+	if result.Conflict {
 		result.Print(true)
-
-		if result.Conflict {
-			return ErrConflict
-		}
-		return nil
+		return ErrConflict
 	}
 
-	if result.Conflict {
-		return ErrConflict
+	if options.DryRun || !result.IsChanged() {
+		result.Print(true)
+		return nil
 	}
 
 	total := 0
@@ -517,6 +514,14 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 			}
 		}
 	}
+
+	if options.Mode == ChangeModeSync {
+		_, err = removeEmptyDirs(mngr.baseDir, false)
+		if err != nil {
+			return err
+		}
+	}
+
 	fmt.Print("\r")
 	result.Print(false)
 
@@ -914,6 +919,6 @@ func (result *DiffResult) Print(verbose bool) {
 	if !result.IsChanged() {
 		fmt.Println("no changed")
 	} else {
-		fmt.Printf("%d modified(M), %d added(+), %d deleted(-), %d remamed(R)\n", modified, added, deleted, renamed)
+		fmt.Printf("%d modified(M), %d added(+), %d deleted(-), %d renamed(R)\n", modified, added, deleted, renamed)
 	}
 }

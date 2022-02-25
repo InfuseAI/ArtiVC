@@ -63,6 +63,25 @@ var getCmd = &cobra.Command{
 			options.RefOrCommit = &ref
 		}
 
+		mergeMode, err := cmd.Flags().GetBool("merge")
+		if err != nil {
+			exitWithError(err)
+		}
+
+		syncMode, err := cmd.Flags().GetBool("sync")
+		if err != nil {
+			exitWithError(err)
+		}
+
+		if mergeMode && syncMode {
+			exitWithFormat("only one of --merge and --sync can be set")
+		}
+		if mergeMode {
+			options.Mode = core.ChangeModeMerge
+		} else if syncMode {
+			options.Mode = core.ChangeModeSync
+		}
+
 		err = mngr.Pull(options)
 		if err != nil {
 			exitWithError(err)
@@ -73,4 +92,6 @@ var getCmd = &cobra.Command{
 
 func init() {
 	getCmd.Flags().StringP("output", "o", "", "Output directory")
+	getCmd.Flags().Bool("merge", false, "Merge data from the commit. No files would be deleted")
+	getCmd.Flags().Bool("sync", false, "Sync data from the commit. The missing files would be deleted")
 }

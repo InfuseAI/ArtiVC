@@ -66,5 +66,5 @@ var pullCmd = &cobra.Command{
 func init() {
 	pullCmd.Flags().Bool("dry-run", false, "Dry run")
 	pullCmd.Flags().Bool("merge", false, "Merge data from the commit. No files would be deleted")
-	pullCmd.Flags().Bool("sync", false, "Sync data from the commit. The missing file would be deleted")
+	pullCmd.Flags().Bool("sync", false, "Sync data from the commit. The missing files would be deleted")
 }
