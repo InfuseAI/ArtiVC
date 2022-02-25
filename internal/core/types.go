@@ -33,29 +33,47 @@ type PushOptions struct {
 	Tag     *string
 }
 
+type ChangeMode int
+
+const (
+	ChangeModeNone = iota
+	ChangeModeMerge
+	ChangeModeSync
+)
+
 type PullOptions struct {
 	DryRun      bool
 	Fetch       bool
 	Diff        bool
+	Mode        ChangeMode
 	RefOrCommit *string
 }
 
 type DiffOptions struct {
+	Mode        ChangeMode
 	LeftRef     string
 	LeftCommit  *Commit
 	RightRef    string
 	RightCommit *Commit
 }
 
-type DiffResult struct {
-	Added   int
-	Deleted int
-	Changed int
-	Renamed int
+type DiffType int
+
+const (
+	DiffTypeAdd DiffType = iota
+	DiffTypeDelete
+	DiffTypeChange
+	DiffTypeRename
+)
+
+type DiffRecord struct {
+	Type    DiffType
+	Path    string
+	NewPath string
 }
 
-func (r DiffResult) IsChanged() bool {
-	return r.Added+r.Deleted+r.Changed+r.Renamed > 0
+type DiffResult struct {
+	Records []DiffRecord
 }
 
 type BlobDownloadResult struct {

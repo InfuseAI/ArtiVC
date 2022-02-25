@@ -29,10 +29,30 @@ var pullCmd = &cobra.Command{
 			return
 		}
 
+		// options
 		option := core.PullOptions{Fetch: true, Diff: true}
 		option.DryRun, err = cmd.Flags().GetBool("dry-run")
 		if err != nil {
 			exitWithError(err)
+		}
+
+		mergeMode, err := cmd.Flags().GetBool("merge")
+		if err != nil {
+			exitWithError(err)
+		}
+
+		syncMode, err := cmd.Flags().GetBool("sync")
+		if err != nil {
+			exitWithError(err)
+		}
+
+		if mergeMode && syncMode {
+			exitWithFormat("only one of --merge and --sync can be set")
+		}
+		if mergeMode {
+			option.Mode = core.ChangeModeMerge
+		} else if syncMode {
+			option.Mode = core.ChangeModeSync
 		}
 
 		err = mngr.Pull(option)
@@ -45,4 +65,6 @@ var pullCmd = &cobra.Command{
 
 func init() {
 	pullCmd.Flags().Bool("dry-run", false, "Dry run")
+	pullCmd.Flags().Bool("merge", false, "Merge data from the commit. No files would be deleted")
+	pullCmd.Flags().Bool("sync", false, "Sync data from the commit. The missing file would be deleted")
 }

@@ -29,13 +29,15 @@ art diff v0.1.0 v0.2.0`,
 			exitWithError(err)
 		}
 
-		_, err = mngr.Diff(core.DiffOptions{
+		result, err := mngr.Diff(core.DiffOptions{
 			LeftRef:  left,
 			RightRef: right,
 		})
 		if err != nil {
 			exitWithError(err)
 		}
+
+		result.Print()
 	},
 }
 

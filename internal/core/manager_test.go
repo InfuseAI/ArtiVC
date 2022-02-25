@@ -1,8 +1,6 @@
 package core
 
 import (
-	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -69,13 +67,4 @@ func TestPushPull(t *testing.T) {
 
 	_, err := os.Stat(filepath.Join(wp2, ".art/config"))
 	assert.False(t, os.IsNotExist(err))
-}
-
-func TestTemp(t *testing.T) {
-
-	a, _ := ioutil.TempDir("", "example")
-	b := os.TempDir()
-	fmt.Printf(a)
-	fmt.Printf(b)
-
 }

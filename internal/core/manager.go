@@ -677,57 +677,47 @@ func (mngr *ArtifactManager) Diff(option DiffOptions) (DiffResult, error) {
 		}
 
 		//
-		renamedPaths := []string{}
+		renamedRecords := []DiffRecord{}
 		for i := 0; i < n; i++ {
-			renamedPaths = append(renamedPaths, fmt.Sprintf("%s -> %s", deleledPaths[i], addedPaths[i]))
+
+			record := DiffRecord{
+				Type:    DiffTypeRename,
+				Path:    deleledPaths[i].Path,
+				NewPath: addedPaths[i].Path,
+			}
+
+			renamedRecords = append(renamedRecords, record)
 		}
 		mapAdded[hash] = addedPaths[n:]
 		mapDeleted[hash] = deleledPaths[n:]
-		mapRenamed[hash] = renamedPaths
+		mapRenamed[hash] = renamedRecords
 	}
 
-	// print the changed paths
-	for _, paths := range mapAdded {
-		for _, path := range paths {
-			color.HiGreen(fmt.Sprintf("+ %s\n", path))
-			added++
-		}
+	// Merge the records from map
+	records := []DiffRecord{}
+
+	for _, added := range mapAdded {
+		records = append(records, added...)
 	}
 
-	for _, paths := range mapDeleted {
-		for _, path := range paths {
-			color.HiRed(fmt.Sprintf("- %s\n", path))
-			deleted++
-		}
+	for _, deleted := range mapDeleted {
+		records = append(records, deleted...)
 	}
 
-	for _, paths := range mapChanged {
-		for _, path := range paths {
-			color.HiYellow(fmt.Sprintf("C %s\n", path))
-			changed++
-		}
+	for _, changed := range mapChanged {
+		records = append(records, changed...)
 	}
 
-	for _, paths := range mapRenamed {
-		for _, path := range paths {
-			color.HiYellow(fmt.Sprintf("R %s\n", path))
-			renamed++
-		}
+	for _, renamed := range mapRenamed {
+		records = append(records, renamed...)
 	}
 
-	// show the summary
-	if added == 0 && deleted == 0 && changed == 0 && renamed == 0 {
-		fmt.Println("no changed")
-	} else {
-		fmt.Printf("%d changed, %d added(+), %d deleted(-)\n", changed+renamed, added, deleted)
-
-	}
+	sort.Slice(records, func(i, j int) bool {
+		return records[i].Path < records[j].Path
+	})
 
 	return DiffResult{
-		Added:   added,
-		Deleted: deleted,
-		Renamed: renamed,
-		Changed: changed,
+		Records: records,
 	}, nil
 }
 
