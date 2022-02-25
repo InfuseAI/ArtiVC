@@ -316,25 +316,36 @@ func (mngr *ArtifactManager) Push(options PushOptions) error {
 		return nil
 	}
 
-	total := len(commit.Blobs)
+	total := 0
 	uploaded := 0
 	skipped := 0
 
-	for _, metadata := range commit.Blobs {
-		result, err := mngr.UploadBlob(metadata.Path, metadata.Hash)
-		if result.Skip {
-			skipped++
-		}
-		uploaded++
-		if err != nil {
-			return fmt.Errorf("cannot upload blob: %s", metadata.Path)
-		}
-		fmt.Printf("\rupload objects: (%d/%d)", uploaded, total)
-		if skipped > 0 {
-			fmt.Printf(", skipped: %d", skipped)
+	for _, record := range result.Records {
+		if record.Type == DiffTypeAdd || record.Type == DiffTypeChange {
+			total++
 		}
 	}
-	fmt.Printf("\ntotal %d objects uploaded\n", total-skipped)
+
+	for _, record := range result.Records {
+		if record.Type == DiffTypeAdd || record.Type == DiffTypeChange {
+			uploadResult, err := mngr.UploadBlob(record.Path, record.Hash)
+			if err != nil {
+				return err
+			}
+
+			uploaded++
+			if uploadResult.Skip {
+				skipped++
+			}
+
+			fmt.Printf("\rupload objects: (%d/%d)", uploaded, total)
+			if skipped > 0 {
+				fmt.Printf(", skipped: %d", skipped)
+			}
+		}
+	}
+	fmt.Println()
+	result.Print(false)
 
 	_, hash := MakeCommitMetadata(commit)
 	fmt.Println("create commit: " + hash)
@@ -522,7 +533,7 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 		}
 	}
 
-	fmt.Print("\r")
+	fmt.Println()
 	result.Print(false)
 
 	return nil
