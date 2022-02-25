@@ -298,16 +298,18 @@ func (mngr *ArtifactManager) Push(options PushOptions) error {
 		if err != ErrEmptyRepository {
 			return err
 		} else {
-			mngr.Diff(DiffOptions{
+			result, err = mngr.Diff(DiffOptions{
 				LeftCommit:  mngr.MakeEmptyCommit(),
 				RightCommit: commit,
 			})
+			if err != nil {
+				return err
+			}
 		}
-	} else if !result.IsChanged() {
-		return nil
 	}
 
-	if options.DryRun {
+	if options.DryRun || !result.IsChanged() {
+		result.Print()
 		return nil
 	}
 
@@ -451,26 +453,35 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 
 	// Get the local commit hash
 	commitLocal, err := mngr.MakeWorkspaceCommit("", nil)
-	if err != nil && err != ErrWorkspaceNotFound {
-		return err
+	if err != nil {
+		if err != ErrWorkspaceNotFound {
+			return err
+		} else {
+			commitLocal = mngr.MakeEmptyCommit()
+		}
 	}
 
 	// Diff
-	if commitLocal != nil && options.Diff {
-		result, err := mngr.Diff(DiffOptions{
-			LeftCommit:  commitLocal,
-			RightCommit: commitRemote,
-		})
-		if err != nil {
-			return err
-		}
-		if !result.IsChanged() {
-			return nil
-		}
+	result, err := mngr.Diff(DiffOptions{
+		Mode:        options.Mode,
+		LeftCommit:  commitLocal,
+		RightCommit: commitRemote,
+	})
+	if err != nil {
+		return err
 	}
 
-	if options.DryRun {
+	if options.DryRun || !result.IsChanged() {
+		result.Print()
+
+		if result.Conflict {
+			return ErrConflict
+		}
 		return nil
+	}
+
+	if result.Conflict {
+		return ErrConflict
 	}
 
 	total := len(commitRemote.Blobs)
@@ -575,7 +586,6 @@ func (mngr *ArtifactManager) List(refOrCommit string) error {
 }
 
 func (mngr *ArtifactManager) Diff(option DiffOptions) (DiffResult, error) {
-	result := DiffResult{}
 	type DiffEntry struct {
 		left  *BlobMetaData
 		right *BlobMetaData
@@ -583,84 +593,80 @@ func (mngr *ArtifactManager) Diff(option DiffOptions) (DiffResult, error) {
 	entries := map[string]DiffEntry{}
 
 	var commitHash string
-	var commit *Commit
 	var err error
-	var added, deleted, changed, renamed int
 
 	// left
-	commit = option.LeftCommit
-	if commit == nil {
+	leftCommit := option.LeftCommit
+	if leftCommit == nil {
 		commitHash, err = mngr.FindCommitOrReference(option.LeftRef)
 		if err != nil {
 			return DiffResult{}, err
 		}
 
-		commit, err = mngr.GetCommit(commitHash)
+		leftCommit, err = mngr.GetCommit(commitHash)
 		if err != nil {
-			return result, err
+			return DiffResult{}, err
 		}
 	}
-	for i, blob := range commit.Blobs {
+	for i, blob := range leftCommit.Blobs {
 		entry := entries[blob.Path]
-		entry.left = &commit.Blobs[i]
+		entry.left = &leftCommit.Blobs[i]
 		entries[blob.Path] = entry
 	}
 
 	// right
-	commit = option.RightCommit
-	if commit == nil {
+	rightCommit := option.RightCommit
+	if rightCommit == nil {
 		commitHash, err = mngr.FindCommitOrReference(option.RightRef)
 		if err != nil {
-			return result, err
+			return DiffResult{}, err
 		}
 
-		commit, err = mngr.GetCommit(commitHash)
+		rightCommit, err = mngr.GetCommit(commitHash)
 		if err != nil {
-			return result, err
+			return DiffResult{}, err
 		}
 	}
 
-	for i, blob := range commit.Blobs {
+	for i, blob := range rightCommit.Blobs {
 		entry := entries[blob.Path]
-		entry.right = &commit.Blobs[i]
+		entry.right = &rightCommit.Blobs[i]
 		entries[blob.Path] = entry
 	}
 
-	// diff
-	paths := []string{}
-	for path, _ := range entries {
-		paths = append(paths, path)
-	}
-	sort.Strings(paths)
+	// Merge the "added" and "deleted" with the same content to "renamed".
+	// key: hash
+	// value: {type, path, newPath}
+	mapAdded := map[string][]DiffRecord{}
+	mapDeleted := map[string][]DiffRecord{}
+	mapRenamed := map[string][]DiffRecord{}
+	mapChanged := map[string][]DiffRecord{}
 
-	// merge the "added" and "deleted" with the same content to "renamed"
-	mapAdded := map[string][]string{}
-	mapDeleted := map[string][]string{}
-	mapRenamed := map[string][]string{}
-	mapChanged := map[string][]string{}
-
-	myappend := func(s []string, item string) []string {
+	appendOrMake := func(s []DiffRecord, item DiffRecord) []DiffRecord {
 		if s != nil {
 			return append(s, item)
 		} else {
-			return []string{item}
+			return []DiffRecord{item}
 		}
-
 	}
 
 	artIgnore := NewArtIgnore(mngr.baseDir)
 
-	for _, path := range paths {
-		entry := entries[path]
+	for path, entry := range entries {
 		if entry.left == nil && entry.right != nil {
 			// ignore added when the path is ignored
 			if !artIgnore.ShouldIgnore(path) {
-				mapAdded[entry.right.Hash] = myappend(mapAdded[entry.right.Hash], path)
+				record := DiffRecord{Type: DiffTypeAdd, Path: entry.right.Path}
+				mapAdded[entry.right.Hash] = appendOrMake(mapAdded[entry.right.Hash], record)
 			}
 		} else if entry.left != nil && entry.right == nil {
-			mapDeleted[entry.left.Hash] = myappend(mapDeleted[entry.left.Hash], path)
+			if option.Mode != ChangeModeMerge {
+				record := DiffRecord{Type: DiffTypeDelete, Path: entry.left.Path}
+				mapDeleted[entry.left.Hash] = appendOrMake(mapDeleted[entry.left.Hash], record)
+			}
 		} else if entry.left.Hash != entry.right.Hash {
-			mapChanged[entry.left.Hash] = myappend(mapChanged[entry.left.Hash], path)
+			record := DiffRecord{Type: DiffTypeChange, Path: entry.left.Path}
+			mapChanged[entry.left.Hash] = appendOrMake(mapChanged[entry.left.Hash], record)
 		}
 	}
 
@@ -695,21 +701,30 @@ func (mngr *ArtifactManager) Diff(option DiffOptions) (DiffResult, error) {
 
 	// Merge the records from map
 	records := []DiffRecord{}
-
+	var conflict bool
 	for _, added := range mapAdded {
 		records = append(records, added...)
 	}
 
 	for _, deleted := range mapDeleted {
 		records = append(records, deleted...)
+		if option.Mode == ChangeModeNone {
+			conflict = true
+		}
 	}
 
 	for _, changed := range mapChanged {
 		records = append(records, changed...)
+		if option.Mode == ChangeModeNone {
+			conflict = true
+		}
 	}
 
 	for _, renamed := range mapRenamed {
 		records = append(records, renamed...)
+		if option.Mode == ChangeModeNone {
+			conflict = true
+		}
 	}
 
 	sort.Slice(records, func(i, j int) bool {
@@ -717,7 +732,8 @@ func (mngr *ArtifactManager) Diff(option DiffOptions) (DiffResult, error) {
 	})
 
 	return DiffResult{
-		Records: records,
+		Conflict: conflict,
+		Records:  records,
 	}, nil
 }
 
@@ -830,4 +846,56 @@ func (mngr *ArtifactManager) Log(refOrCommit string) error {
 	}
 
 	return nil
+}
+
+func (result DiffResult) IsChanged() bool {
+	return len(result.Records) > 0
+}
+
+func (result DiffResult) IsAppendOnly() bool {
+	var modified int
+	records := result.Records
+	if records == nil {
+		records = []DiffRecord{}
+	}
+
+	for _, record := range records {
+		if record.Type != DiffTypeAdd {
+			modified++
+		}
+	}
+
+	return modified == 0
+}
+
+func (result *DiffResult) Print() {
+	records := result.Records
+	if records == nil {
+		records = []DiffRecord{}
+	}
+
+	var added, deleted, changed, renamed int
+
+	for _, record := range records {
+		switch record.Type {
+		case DiffTypeAdd:
+			color.HiGreen(fmt.Sprintf("+ %s\n", record.Path))
+			added++
+		case DiffTypeDelete:
+			color.HiRed(fmt.Sprintf("- %s\n", record.Path))
+			deleted++
+		case DiffTypeChange:
+			color.HiYellow(fmt.Sprintf("C %s\n", record.Path))
+			changed++
+		case DiffTypeRename:
+			color.HiYellow(fmt.Sprintf("R %s -> %s\n", record.Path, record.NewPath))
+			renamed++
+		}
+	}
+
+	if !result.IsChanged() {
+		fmt.Println("no changed")
+	} else {
+		fmt.Printf("%d changed, %d added(+), %d deleted(-)\n", changed+renamed, added, deleted)
+	}
 }

@@ -73,7 +73,8 @@ type DiffRecord struct {
 }
 
 type DiffResult struct {
-	Records []DiffRecord
+	Conflict bool
+	Records  []DiffRecord
 }
 
 type BlobDownloadResult struct {
