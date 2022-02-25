@@ -593,6 +593,11 @@ func (mngr *ArtifactManager) List(refOrCommit string) error {
 	if err != nil {
 		return err
 	}
+
+	sort.Slice(commit.Blobs, func(i, j int) bool {
+		return commit.Blobs[i].Path < commit.Blobs[j].Path
+	})
+
 	for _, blob := range commit.Blobs {
 		fmt.Println(blob.Path)
 	}
