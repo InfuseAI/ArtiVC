@@ -30,7 +30,11 @@ var pullCmd = &cobra.Command{
 		}
 
 		// options
-		option := core.PullOptions{Fetch: true, Diff: true}
+		option := core.PullOptions{}
+		if len(args) > 0 {
+			option.RefOrCommit = &args[0]
+		}
+
 		option.DryRun, err = cmd.Flags().GetBool("dry-run")
 		if err != nil {
 			exitWithError(err)

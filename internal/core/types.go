@@ -43,8 +43,7 @@ const (
 
 type PullOptions struct {
 	DryRun      bool
-	Fetch       bool
-	Diff        bool
+	NoFetch     bool
 	Mode        ChangeMode
 	RefOrCommit *string
 }

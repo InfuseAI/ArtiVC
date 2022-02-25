@@ -429,7 +429,7 @@ func (mngr *ArtifactManager) MakeWorkspaceCommit(parent string, message *string)
 
 func (mngr *ArtifactManager) Pull(options PullOptions) error {
 	var err error
-	if options.Fetch {
+	if !options.NoFetch {
 		err = mngr.Fetch()
 		if err != nil {
 			return err
@@ -595,6 +595,11 @@ func (mngr *ArtifactManager) DeleteTag(tag string) error {
 }
 
 func (mngr *ArtifactManager) List(refOrCommit string) error {
+	err := mngr.Fetch()
+	if err != nil {
+		return err
+	}
+
 	commitHash, err := mngr.FindCommitOrReference(refOrCommit)
 	if err != nil {
 		return err

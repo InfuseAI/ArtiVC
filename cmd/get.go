@@ -58,7 +58,7 @@ var getCmd = &cobra.Command{
 			return
 		}
 
-		options := core.PullOptions{}
+		options := core.PullOptions{NoFetch: true}
 		if ref != "" {
 			options.RefOrCommit = &ref
 		}
