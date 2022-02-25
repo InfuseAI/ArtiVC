@@ -68,6 +68,7 @@ const (
 
 type DiffRecord struct {
 	Type    DiffType
+	Hash    string
 	Path    string
 	NewPath string
 }

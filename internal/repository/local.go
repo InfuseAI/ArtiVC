@@ -79,11 +79,17 @@ func (repo *LocalFileSystemRepository) Download(repoPath, localPath string) erro
 
 	dest, err := os.Create(localPath)
 	if err != nil {
-		fmt.Printf("%v\n", err)
 		return err
 	}
 	defer dest.Close()
-	_, err = io.Copy(dest, src)
+	written, err := io.Copy(dest, src)
+	if err != nil {
+		return err
+	}
+
+	if written == 0 {
+		err = os.Truncate(localPath, 0)
+	}
 
 	return err
 }

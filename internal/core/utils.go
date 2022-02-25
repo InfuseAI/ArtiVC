@@ -77,3 +77,12 @@ func readGzipFile(src string) ([]byte, error) {
 func deleteFile(src string) error {
 	return os.Remove(src)
 }
+
+func renameFile(src, dst string) error {
+	err := os.MkdirAll(filepath.Dir(dst), fs.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	return os.Rename(src, dst)
+}

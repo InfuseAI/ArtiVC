@@ -66,28 +66,31 @@ func NewArtifactManager(config ArtConfig) (*ArtifactManager, error) {
 	return &ArtifactManager{baseDir: baseDir, repo: repo, metadataDir: metadataDir}, nil
 }
 
-func (mngr *ArtifactManager) UploadBlob(metadata BlobMetaData) (BlobUploadResult, error) {
-	repoPath := MakeObjectPath(metadata.Hash)
+func (mngr *ArtifactManager) UploadBlob(localPath, hash string) (BlobUploadResult, error) {
+	repoPath := MakeObjectPath(hash)
 	_, err := mngr.repo.Stat(repoPath)
 	if err == nil {
 		return BlobUploadResult{Skip: true}, nil
 	}
 
-	blobPath := filepath.Join(mngr.baseDir, metadata.Path)
+	blobPath := filepath.Join(mngr.baseDir, localPath)
 	err = mngr.repo.Upload(blobPath, repoPath)
 	return BlobUploadResult{Skip: false}, err
 }
 
-func (mngr *ArtifactManager) DownloadBlob(metadata BlobMetaData) (BlobDownloadResult, error) {
-	hash, err := Sha1SumFromFile(path.Join(mngr.baseDir, metadata.Path))
-	if err == nil && hash == metadata.Hash {
+func (mngr *ArtifactManager) DownloadBlob(localPath, remoteHash string) (BlobDownloadResult, error) {
+	hash, err := Sha1SumFromFile(path.Join(mngr.baseDir, localPath))
+	if err == nil && hash == remoteHash {
 		return BlobDownloadResult{Skip: true}, nil
 	}
+	blobPath := filepath.Join(mngr.baseDir, localPath)
 
-	// fmt.Printf("Skip:     %s\n", metadata.Path)
-	// fmt.Printf("download: %s\n", metadata.Path)
-	blobPath := filepath.Join(mngr.baseDir, metadata.Path)
-	repoPath := MakeObjectPath(metadata.Hash)
+	err = mkdirsForFile(blobPath)
+	if err != nil {
+		return BlobDownloadResult{}, err
+	}
+
+	repoPath := MakeObjectPath(remoteHash)
 	err = mngr.repo.Download(repoPath, blobPath)
 	if err != nil {
 		return BlobDownloadResult{}, err
@@ -309,7 +312,7 @@ func (mngr *ArtifactManager) Push(options PushOptions) error {
 	}
 
 	if options.DryRun || !result.IsChanged() {
-		result.Print()
+		result.Print(true)
 		return nil
 	}
 
@@ -318,7 +321,7 @@ func (mngr *ArtifactManager) Push(options PushOptions) error {
 	skipped := 0
 
 	for _, metadata := range commit.Blobs {
-		result, err := mngr.UploadBlob(metadata)
+		result, err := mngr.UploadBlob(metadata.Path, metadata.Hash)
 		if result.Skip {
 			skipped++
 		}
@@ -472,7 +475,7 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 	}
 
 	if options.DryRun || !result.IsChanged() {
-		result.Print()
+		result.Print(true)
 
 		if result.Conflict {
 			return ErrConflict
@@ -484,31 +487,38 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 		return ErrConflict
 	}
 
-	total := len(commitRemote.Blobs)
+	total := 0
 	downloaded := 0
-	skipped := 0
-	for _, blob := range commitRemote.Blobs {
-		err := mkdirsForFile(path.Join(mngr.baseDir, blob.Path))
-		if err != nil {
-			return err
-		}
 
-		result, err := mngr.DownloadBlob(blob)
-		if err != nil {
-			return err
-		}
-
-		if result.Skip {
-			skipped++
-		}
-
-		downloaded++
-		fmt.Printf("\rdownload objects: (%d/%d)", downloaded, total)
-		if skipped > 0 {
-			fmt.Printf(", skipped: %d", skipped)
+	for _, record := range result.Records {
+		if record.Type == DiffTypeAdd || record.Type == DiffTypeChange {
+			total++
 		}
 	}
-	fmt.Printf("\ntotal %d objects downloaded\n", total-skipped)
+
+	for _, record := range result.Records {
+		switch record.Type {
+		case DiffTypeAdd, DiffTypeChange:
+			_, err := mngr.DownloadBlob(record.Path, record.Hash)
+			if err != nil {
+				return err
+			}
+			downloaded++
+			fmt.Printf("\rdownload objects: (%d/%d)", downloaded, total)
+		case DiffTypeDelete:
+			err := deleteFile(record.Path)
+			if err != nil {
+				return err
+			}
+		case DiffTypeRename:
+			err := renameFile(record.Path, record.NewPath)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	fmt.Print("\r")
+	result.Print(false)
 
 	return nil
 }
@@ -656,16 +666,16 @@ func (mngr *ArtifactManager) Diff(option DiffOptions) (DiffResult, error) {
 		if entry.left == nil && entry.right != nil {
 			// ignore added when the path is ignored
 			if !artIgnore.ShouldIgnore(path) {
-				record := DiffRecord{Type: DiffTypeAdd, Path: entry.right.Path}
+				record := DiffRecord{Type: DiffTypeAdd, Path: entry.right.Path, Hash: entry.right.Hash}
 				mapAdded[entry.right.Hash] = appendOrMake(mapAdded[entry.right.Hash], record)
 			}
 		} else if entry.left != nil && entry.right == nil {
 			if option.Mode != ChangeModeMerge {
-				record := DiffRecord{Type: DiffTypeDelete, Path: entry.left.Path}
+				record := DiffRecord{Type: DiffTypeDelete, Path: entry.left.Path, Hash: entry.left.Hash}
 				mapDeleted[entry.left.Hash] = appendOrMake(mapDeleted[entry.left.Hash], record)
 			}
 		} else if entry.left.Hash != entry.right.Hash {
-			record := DiffRecord{Type: DiffTypeChange, Path: entry.left.Path}
+			record := DiffRecord{Type: DiffTypeChange, Path: entry.left.Path, Hash: entry.left.Hash}
 			mapChanged[entry.left.Hash] = appendOrMake(mapChanged[entry.left.Hash], record)
 		}
 	}
@@ -868,27 +878,35 @@ func (result DiffResult) IsAppendOnly() bool {
 	return modified == 0
 }
 
-func (result *DiffResult) Print() {
+func (result *DiffResult) Print(verbose bool) {
 	records := result.Records
 	if records == nil {
 		records = []DiffRecord{}
 	}
 
-	var added, deleted, changed, renamed int
+	var added, deleted, modified, renamed int
 
 	for _, record := range records {
 		switch record.Type {
 		case DiffTypeAdd:
-			color.HiGreen(fmt.Sprintf("+ %s\n", record.Path))
+			if verbose {
+				color.HiGreen(fmt.Sprintf("+ %s\n", record.Path))
+			}
 			added++
 		case DiffTypeDelete:
-			color.HiRed(fmt.Sprintf("- %s\n", record.Path))
+			if verbose {
+				color.HiRed(fmt.Sprintf("- %s\n", record.Path))
+			}
 			deleted++
 		case DiffTypeChange:
-			color.HiYellow(fmt.Sprintf("C %s\n", record.Path))
-			changed++
+			if verbose {
+				color.HiYellow(fmt.Sprintf("M %s\n", record.Path))
+			}
+			modified++
 		case DiffTypeRename:
-			color.HiYellow(fmt.Sprintf("R %s -> %s\n", record.Path, record.NewPath))
+			if verbose {
+				color.HiYellow(fmt.Sprintf("R %s -> %s\n", record.Path, record.NewPath))
+			}
 			renamed++
 		}
 	}
@@ -896,6 +914,6 @@ func (result *DiffResult) Print() {
 	if !result.IsChanged() {
 		fmt.Println("no changed")
 	} else {
-		fmt.Printf("%d changed, %d added(+), %d deleted(-)\n", changed+renamed, added, deleted)
+		fmt.Printf("%d modified(M), %d added(+), %d deleted(-), %d remamed(R)\n", modified, added, deleted, renamed)
 	}
 }
