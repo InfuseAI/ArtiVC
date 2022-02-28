@@ -66,15 +66,18 @@ func NewArtifactManager(config ArtConfig) (*ArtifactManager, error) {
 	return &ArtifactManager{baseDir: baseDir, repo: repo, metadataDir: metadataDir}, nil
 }
 
-func (mngr *ArtifactManager) UploadBlob(localPath, hash string) (BlobUploadResult, error) {
+func (mngr *ArtifactManager) UploadBlob(localPath, hash string, checkSkip bool) (BlobUploadResult, error) {
 	repoPath := MakeObjectPath(hash)
-	_, err := mngr.repo.Stat(repoPath)
-	if err == nil {
-		return BlobUploadResult{Skip: true}, nil
+
+	if checkSkip {
+		_, err := mngr.repo.Stat(repoPath)
+		if err == nil {
+			return BlobUploadResult{Skip: true}, nil
+		}
 	}
 
 	blobPath := filepath.Join(mngr.baseDir, localPath)
-	err = mngr.repo.Upload(blobPath, repoPath)
+	err := mngr.repo.Upload(blobPath, repoPath)
 	return BlobUploadResult{Skip: false}, err
 }
 
@@ -287,6 +290,7 @@ func (mngr *ArtifactManager) Push(options PushOptions) error {
 	if err != nil {
 		parent = ""
 	}
+	checkSkip := true
 
 	commit, err := mngr.MakeWorkspaceCommit(parent, options.Message)
 	if err != nil {
@@ -301,6 +305,7 @@ func (mngr *ArtifactManager) Push(options PushOptions) error {
 		if err != ErrEmptyRepository {
 			return err
 		} else {
+			checkSkip = false
 			result, err = mngr.Diff(DiffOptions{
 				LeftCommit:  mngr.MakeEmptyCommit(),
 				RightCommit: commit,
@@ -326,24 +331,40 @@ func (mngr *ArtifactManager) Push(options PushOptions) error {
 		}
 	}
 
+	tasks := []executor.TaskFunc{}
+	mtx := sync.Mutex{}
+
 	for _, record := range result.Records {
 		if record.Type == DiffTypeAdd || record.Type == DiffTypeChange {
-			uploadResult, err := mngr.UploadBlob(record.Path, record.Hash)
-			if err != nil {
-				return err
-			}
+			thisRecord := record
+			task := func(ctx context.Context) error {
+				uploadResult, err := mngr.UploadBlob(thisRecord.Path, thisRecord.Hash, checkSkip)
+				if err != nil {
+					return err
+				}
 
-			uploaded++
-			if uploadResult.Skip {
-				skipped++
-			}
+				mtx.Lock()
+				uploaded++
+				if uploadResult.Skip {
+					skipped++
+				}
+				mtx.Unlock()
 
-			fmt.Printf("\rupload objects: (%d/%d)", uploaded, total)
-			if skipped > 0 {
-				fmt.Printf(", skipped: %d", skipped)
+				fmt.Printf("\rupload objects: (%d/%d)", uploaded, total)
+				if skipped > 0 {
+					fmt.Printf(", skipped: %d", skipped)
+				}
+
+				return nil
 			}
+			tasks = append(tasks, task)
 		}
 	}
+	err = executor.ExecuteAll(0, tasks...)
+	if err != nil {
+		return err
+	}
+
 	fmt.Println()
 	result.Print(false)
 
@@ -504,26 +525,40 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 		}
 	}
 
+	tasks := []executor.TaskFunc{}
+	mtx := sync.Mutex{}
 	for _, record := range result.Records {
-		switch record.Type {
-		case DiffTypeAdd, DiffTypeChange:
-			_, err := mngr.DownloadBlob(record.Path, record.Hash)
-			if err != nil {
-				return err
+		theRecord := record
+
+		task := func(ctx context.Context) error {
+			switch theRecord.Type {
+			case DiffTypeAdd, DiffTypeChange:
+				_, err := mngr.DownloadBlob(theRecord.Path, theRecord.Hash)
+				if err != nil {
+					return err
+				}
+				mtx.Lock()
+				downloaded++
+				mtx.Unlock()
+				fmt.Printf("\rdownload objects: (%d/%d)", downloaded, total)
+			case DiffTypeDelete:
+				err := deleteFile(theRecord.Path)
+				if err != nil {
+					return err
+				}
+			case DiffTypeRename:
+				err := renameFile(theRecord.Path, theRecord.NewPath)
+				if err != nil {
+					return err
+				}
 			}
-			downloaded++
-			fmt.Printf("\rdownload objects: (%d/%d)", downloaded, total)
-		case DiffTypeDelete:
-			err := deleteFile(record.Path)
-			if err != nil {
-				return err
-			}
-		case DiffTypeRename:
-			err := renameFile(record.Path, record.NewPath)
-			if err != nil {
-				return err
-			}
+			return nil
 		}
+		tasks = append(tasks, task)
+	}
+	err = executor.ExecuteAll(10, tasks...)
+	if err != nil {
+		return err
 	}
 
 	if options.Mode == ChangeModeSync {

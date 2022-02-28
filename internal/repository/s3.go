@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
@@ -47,7 +48,6 @@ func (repo *S3Repository) Upload(localPath, repoPath string) error {
 		return err
 	}
 	defer source.Close()
-
 	key := filepath.Join(repo.BasePath, repoPath)
 	input := &s3.PutObjectInput{
 		Bucket: &repo.Bucket,
@@ -55,8 +55,14 @@ func (repo *S3Repository) Upload(localPath, repoPath string) error {
 		Body:   source,
 	}
 
-	_, err = repo.client.PutObject(context.TODO(), input)
+	if sourceFileStat.Size() < manager.DefaultUploadPartSize {
+		_, err = repo.client.PutObject(context.TODO(), input)
+	} else {
+		uploader := manager.NewUploader(repo.client)
+		_, err = uploader.Upload(context.TODO(), input)
+	}
 	return err
+
 }
 
 func (repo *S3Repository) Download(repoPath, localPath string) error {
