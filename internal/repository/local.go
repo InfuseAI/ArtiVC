@@ -3,7 +3,7 @@ package repository
 import (
 	"errors"
 	"fmt"
-	"io"
+	"github.com/infuseai/artiv/internal/meter"
 	"io/fs"
 	"os"
 	"path"
@@ -37,7 +37,7 @@ func NewLocalFileSystemRepository(repoDir string) (*LocalFileSystemRepository, e
 	}, nil
 }
 
-func (repo *LocalFileSystemRepository) Upload(localPath, repoPath string) error {
+func (repo *LocalFileSystemRepository) Upload(localPath, repoPath string, m *meter.Meter) error {
 	sourceFileStat, err := os.Stat(localPath)
 	if err != nil {
 		return err
@@ -64,12 +64,11 @@ func (repo *LocalFileSystemRepository) Upload(localPath, repoPath string) error 
 		return err
 	}
 	defer destination.Close()
-	_, err = io.Copy(destination, source)
-
+	_, err = meter.CopyWithMeter(destination, source, m)
 	return err
 }
 
-func (repo *LocalFileSystemRepository) Download(repoPath, localPath string) error {
+func (repo *LocalFileSystemRepository) Download(repoPath, localPath string, m *meter.Meter) error {
 	srcPath := path.Join(repo.RepoDir, repoPath)
 	src, err := os.Open(srcPath)
 	if err != nil {
@@ -82,7 +81,7 @@ func (repo *LocalFileSystemRepository) Download(repoPath, localPath string) erro
 		return err
 	}
 	defer dest.Close()
-	written, err := io.Copy(dest, src)
+	written, err := meter.CopyWithMeter(dest, src, m)
 	if err != nil {
 		return err
 	}

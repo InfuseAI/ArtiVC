@@ -3,7 +3,6 @@ package repository
 import (
 	"errors"
 	"fmt"
-	"io"
 	"io/fs"
 	"net/http"
 	"net/url"
@@ -11,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/infuseai/artiv/internal/meter"
 )
 
 type HttpRepository struct {
@@ -27,11 +28,11 @@ func NewHttpRepository(repo string) (*HttpRepository, error) {
 	}, nil
 }
 
-func (repo *HttpRepository) Upload(localPath, repoPath string) error {
+func (repo *HttpRepository) Upload(localPath, repoPath string, meter *meter.Meter) error {
 	return errors.New("Upload is not supported in Http repository")
 }
 
-func (repo *HttpRepository) Download(repoPath, localPath string) error {
+func (repo *HttpRepository) Download(repoPath, localPath string, m *meter.Meter) error {
 	filePath, err := getFilePath(repo.RepoUrl, repoPath)
 	if err != nil {
 		return err
@@ -53,8 +54,7 @@ func (repo *HttpRepository) Download(repoPath, localPath string) error {
 	}
 	defer outputFile.Close()
 
-	_, err = io.Copy(outputFile, res.Body)
-
+	_, err = meter.CopyWithMeter(outputFile, res.Body, m)
 	return err
 }
 

@@ -3,11 +3,12 @@ package repository
 import (
 	"context"
 	"fmt"
-	"io"
+	"github.com/infuseai/artiv/internal/meter"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
@@ -29,7 +30,7 @@ func NewS3Repository(bucket, basePath string) (*S3Repository, error) {
 	}, nil
 }
 
-func (repo *S3Repository) Upload(localPath, repoPath string) error {
+func (repo *S3Repository) Upload(localPath, repoPath string, m *meter.Meter) error {
 	if repo.client == nil {
 		repo.init()
 	}
@@ -48,11 +49,24 @@ func (repo *S3Repository) Upload(localPath, repoPath string) error {
 		return err
 	}
 	defer source.Close()
+
+	fileInfo, err := source.Stat()
+	if err != nil {
+		return err
+	}
+
+	reader := &MeterReader{
+		fp:      source,
+		size:    fileInfo.Size(),
+		signMap: map[int64]struct{}{},
+		meter:   m,
+	}
+
 	key := filepath.Join(repo.BasePath, repoPath)
 	input := &s3.PutObjectInput{
 		Bucket: &repo.Bucket,
 		Key:    &key,
-		Body:   source,
+		Body:   reader,
 	}
 
 	if sourceFileStat.Size() < manager.DefaultUploadPartSize {
@@ -64,7 +78,7 @@ func (repo *S3Repository) Upload(localPath, repoPath string) error {
 	return err
 }
 
-func (repo *S3Repository) Download(repoPath, localPath string) error {
+func (repo *S3Repository) Download(repoPath, localPath string, m *meter.Meter) error {
 	if repo.client == nil {
 		repo.init()
 	}
@@ -86,7 +100,7 @@ func (repo *S3Repository) Download(repoPath, localPath string) error {
 		return err
 	}
 	defer dest.Close()
-	_, err = io.Copy(dest, output.Body)
+	_, err = meter.CopyWithMeter(dest, output.Body, m)
 
 	return err
 }
@@ -170,4 +184,46 @@ func (e *S3DirEntry) Type() fs.FileMode {
 
 func (e *S3DirEntry) Info() (fs.FileInfo, error) {
 	return nil, nil
+}
+
+type MeterReader struct {
+	fp      *os.File
+	size    int64
+	read    int64
+	signMap map[int64]struct{}
+	mux     sync.Mutex
+	meter   *meter.Meter
+}
+
+func (r *MeterReader) Read(p []byte) (int, error) {
+	read, err := r.fp.Read(p)
+	if r.meter != nil {
+		r.meter.AddBytes(read)
+	}
+	return read, err
+}
+
+func (r *MeterReader) ReadAt(p []byte, off int64) (int, error) {
+	n, err := r.fp.ReadAt(p, off)
+	if err != nil {
+		return n, err
+	}
+
+	r.mux.Lock()
+	// Ignore the first signature call
+	if _, ok := r.signMap[off]; ok {
+		// Got the length have read( or means has uploaded), and you can construct your message
+		r.read += int64(n)
+		if r.meter != nil {
+			r.meter.AddBytes(n)
+		}
+	} else {
+		r.signMap[off] = struct{}{}
+	}
+	r.mux.Unlock()
+	return n, err
+}
+
+func (r *MeterReader) Seek(offset int64, whence int) (int64, error) {
+	return r.fp.Seek(offset, whence)
 }

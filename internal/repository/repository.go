@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"github.com/infuseai/artiv/internal/meter"
 	"io/fs"
 	neturl "net/url"
 	"strings"
@@ -12,8 +13,8 @@ type (
 )
 
 type Repository interface {
-	Upload(localPath, repoPath string) error
-	Download(repoPath, localPath string) error
+	Upload(localPath, repoPath string, meter *meter.Meter) error
+	Download(repoPath, localPath string, meter *meter.Meter) error
 	Delete(repoPath string) error
 	Stat(repoPath string) (FileInfo, error)
 	List(repoPath string) ([]ListEntry, error)
