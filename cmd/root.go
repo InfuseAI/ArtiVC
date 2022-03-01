@@ -9,18 +9,22 @@ import (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "art",
-	Short: "A version control system for large files",
-	Example: `  # Put files from a repository
-  art put . /tmp/art/repo
- 
-  # Get file from a repository
-  art get -o /tmp/art/out /tmp/art/repo 
+	Short: "AritV is a version control system for large files",
+	Example: `  # Push data to the repository
+  cd /path/to/my/data
+  art init s3://mybucket/path/to/repo
+  art push -m "my first commit"
 
-  # Create a workspace
-  cd /tmp/art/workspace
-  art init /tmp/art/repo
-  art log
+  # Pull data from the repository
+  cd /path/to/download
+  art init s3://mybucket/path/to/repo
   art pull
+
+  # Download by quick command
+  art get -o /path/to/download s3://mybucket/path/to/repo
+
+  # Show command help
+  art <command> -h
 
   For more information, please check https://github.com/infuseai/artiv`,
 }
@@ -38,12 +42,12 @@ func init() {
 	cobra.EnableCommandSorting = false
 	rootCmd.SetUsageTemplate(usageTemplate)
 
-	addCommandWithGroup("basic",
+	addCommandWithGroup(GROUP_QUICK,
 		getCmd,
 		putCmd,
 	)
 
-	addCommandWithGroup("workspace",
+	addCommandWithGroup(GROUP_BASIC,
 		initCommand,
 		configCommand,
 		pullCmd,
@@ -93,7 +97,7 @@ Examples:
 {{- if not .HasParent}}
 Basic Commands:{{range .Commands}}{{if (eq .Annotations.group "basic")}}{{template "command" .}}{{end}}{{end}}
 
-Workspace Commands:{{range .Commands}}{{if (eq .Annotations.group "workspace")}}{{template "command" .}}{{end}}{{end}}
+Quick Commands (Download or upload without a workspace):{{range .Commands}}{{if (eq .Annotations.group "quick")}}{{template "command" .}}{{end}}{{end}}
 
 Other Commands:{{range .Commands}}{{if not .Annotations.group}}{{template "command" .}}{{end}}{{end}}
 {{- else}}

@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	GROUP_BASIC     = "basic"
-	GROUP_WORKSPACE = "workspace"
+	GROUP_BASIC = "basic"
+	GROUP_QUICK = "quick"
 )
 
 func exitWithError(err error) {
