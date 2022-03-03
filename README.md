@@ -4,10 +4,10 @@ ArtiV (**Arti**fact **V**ersions) is a version control system for large files.
 
 To store and share large files, we may use NFS or object storage (e.g. s3, MinIO). However, if we would like to do versioning on top of them, it is not a trivial thing. ArtiV is a CLI tool to enable you to version files on your storage without pain. You don't need to install any additional server or gateway and we turn your storage into the versioned repository.
 
-# Install
-Download the latest ArtiV in the [release](https://github.com/InfuseAI/ArtiV/releases) page
-
 # Quick Start
+
+## Install ArtiV
+Download the latest ArtiV in the [release](https://github.com/InfuseAI/ArtiV/releases) page
 
 ## Push data
 1. Select the bucket and path to put your versioned data. Here we use `s3://mybucket/path/to/repo`. You can use local repository instead (e.g. `/path/to/repo`)
@@ -137,11 +137,11 @@ Please see [the command reference](./docs/commands/art.md)
 ![](./docs/assets/cheatsheet.png)
 
 
-# Configurations
-## S3 repository
+## Configurations
+### S3 repository
 Prepare the `~/.aws/credentials` to access the s3 repository. Please see the [AWS documentation](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html)
 
-## Ignore file
+### Ignore file
 You can put the `.artignore` file at the root of the workpsace. The content of the `.artfile` is regular expression per line. To test the result of `.artfile`, you can use `art push --dry-run` to see what files would be pushed.
 
 # Use Cases
@@ -215,7 +215,9 @@ In this use case, we use `get` and `put` commands to simplify the commands for p
    python ./train.py
    ``` 
 1. Upload the artifacts 
+   ```
    art put artifacts/ s3://mybucket/experiments/project1@202220303-100504
+   ```
 
 
 ## Case 3: Expose the dataset by HTTP
