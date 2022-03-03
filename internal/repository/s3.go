@@ -62,7 +62,6 @@ func (repo *S3Repository) Upload(localPath, repoPath string) error {
 		_, err = uploader.Upload(context.TODO(), input)
 	}
 	return err
-
 }
 
 func (repo *S3Repository) Download(repoPath, localPath string) error {
@@ -160,12 +159,15 @@ type S3DirEntry struct {
 func (e *S3DirEntry) Name() string {
 	return e.name
 }
+
 func (e *S3DirEntry) IsDir() bool {
 	return false
 }
+
 func (e *S3DirEntry) Type() fs.FileMode {
 	return os.ModePerm
 }
+
 func (e *S3DirEntry) Info() (fs.FileInfo, error) {
 	return nil, nil
 }

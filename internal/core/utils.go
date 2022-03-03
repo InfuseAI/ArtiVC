@@ -61,7 +61,6 @@ func removeEmptyDirs(dir string, removeSelf bool) (bool, error) {
 	}
 
 	return false, nil
-
 }
 
 func writeFile(content []byte, dst string) error {

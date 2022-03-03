@@ -2,10 +2,11 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/spf13/cobra"
-	"github.com/spf13/cobra/doc"
 	"io/fs"
 	"os"
+
+	"github.com/spf13/cobra"
+	"github.com/spf13/cobra/doc"
 )
 
 var docsCommand = &cobra.Command{
