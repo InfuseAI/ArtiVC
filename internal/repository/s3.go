@@ -3,16 +3,16 @@ package repository
 import (
 	"context"
 	"fmt"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/infuseai/artiv/internal/meter"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
-
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 type S3Repository struct {
@@ -55,7 +55,7 @@ func (repo *S3Repository) Upload(localPath, repoPath string, m *meter.Meter) err
 		return err
 	}
 
-	reader := &MeterReader{
+	reader := &progressReader{
 		fp:      source,
 		size:    fileInfo.Size(),
 		signMap: map[int64]struct{}{},
@@ -89,10 +89,15 @@ func (repo *S3Repository) Download(repoPath, localPath string, m *meter.Meter) e
 		Key:    &key,
 	}
 
-	output, err := repo.client.GetObject(context.TODO(), input)
+	_, err := repo.client.HeadObject(context.TODO(), &s3.HeadObjectInput{
+		Bucket: &repo.Bucket,
+		Key:    &key,
+	})
 	if err != nil {
 		return err
 	}
+
+	downloader := manager.NewDownloader(repo.client)
 
 	dest, err := os.Create(localPath)
 	if err != nil {
@@ -100,8 +105,9 @@ func (repo *S3Repository) Download(repoPath, localPath string, m *meter.Meter) e
 		return err
 	}
 	defer dest.Close()
-	_, err = meter.CopyWithMeter(dest, output.Body, m)
 
+	writer := &progressWriter{writer: dest, meter: m}
+	_, err = downloader.Download(context.TODO(), writer, input)
 	return err
 }
 
@@ -186,7 +192,7 @@ func (e *S3DirEntry) Info() (fs.FileInfo, error) {
 	return nil, nil
 }
 
-type MeterReader struct {
+type progressReader struct {
 	fp      *os.File
 	size    int64
 	read    int64
@@ -195,7 +201,7 @@ type MeterReader struct {
 	meter   *meter.Meter
 }
 
-func (r *MeterReader) Read(p []byte) (int, error) {
+func (r *progressReader) Read(p []byte) (int, error) {
 	read, err := r.fp.Read(p)
 	if r.meter != nil {
 		r.meter.AddBytes(read)
@@ -203,7 +209,7 @@ func (r *MeterReader) Read(p []byte) (int, error) {
 	return read, err
 }
 
-func (r *MeterReader) ReadAt(p []byte, off int64) (int, error) {
+func (r *progressReader) ReadAt(p []byte, off int64) (int, error) {
 	n, err := r.fp.ReadAt(p, off)
 	if err != nil {
 		return n, err
@@ -224,6 +230,18 @@ func (r *MeterReader) ReadAt(p []byte, off int64) (int, error) {
 	return n, err
 }
 
-func (r *MeterReader) Seek(offset int64, whence int) (int64, error) {
+func (r *progressReader) Seek(offset int64, whence int) (int64, error) {
 	return r.fp.Seek(offset, whence)
+}
+
+type progressWriter struct {
+	writer io.WriterAt
+	meter  *meter.Meter
+}
+
+func (w *progressWriter) WriteAt(p []byte, off int64) (int, error) {
+	if w.meter != nil {
+		w.meter.AddBytes(len(p))
+	}
+	return w.writer.WriteAt(p, off)
 }
