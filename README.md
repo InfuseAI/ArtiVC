@@ -143,9 +143,6 @@ Please see [the command reference](./docs/commands/art.md)
 ### S3 repository
 Prepare the `~/.aws/credentials` to access the s3 repository. Please see the [AWS documentation](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html)
 
-### Ignore file
-You can put the `.artignore` file at the root of the workpsace. The content of the `.artfile` is regular expression per line. To test the result of `.artfile`, you can use `art push --dry-run` to see what files would be pushed.
-
 # Use Cases
 
 ## Case 1: Dataset Preparation of an Image Classification Project
