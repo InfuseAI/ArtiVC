@@ -16,14 +16,13 @@ jobs:
       - name: Show environment
         run: export
       - uses: actions/checkout@v2
-      - uses: wangyoucao577/go-release-action@v1.18
+      - uses: wangyoucao577/go-release-action@v1.25
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           goos: ${{ matrix.goos }}
           goarch: ${{ matrix.goarch }}
           build_command: "make"
           build_flags: "build"
-          binary_name: "art"
           ldflags: "-I."
           extra_files: bin/art
           pre_command: "git clean -df"
