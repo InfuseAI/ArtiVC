@@ -4,7 +4,7 @@ ArtiV (**Arti**fact **V**ersions) is a version control system for large files.
 
 To store and share large files, we may use NFS or object storage (e.g. s3, MinIO). However, if we would like to do versioning on top of them, it is not a trivial thing. ArtiV is a CLI tool to enable you to version files on your storage without pain. You don't need to install any additional server or gateway and we turn your storage into the versioned repository.
 
-[![asciicast](https://asciinema.org/a/zGyVV23kZE2KDdYHrJPg5DHpi.svg)](https://asciinema.org/a/zGyVV23kZE2KDdYHrJPg5DHpi?autoplay=1)
+[![asciicast](https://asciinema.org/a/XP7AWyrCszebm1KuF3PcYfnRK.svg)](https://asciinema.org/a/XP7AWyrCszebm1KuF3PcYfnRK?autoplay=1)
 
 # Quick Start
 
