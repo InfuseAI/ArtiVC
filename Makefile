@@ -22,3 +22,8 @@ build:
 
 test:
 	go test ./...
+
+generate_doc:
+	rm -rf docs/commands
+	go run main.go docs
+	mv ./generated_docs docs/commands
