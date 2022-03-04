@@ -38,7 +38,6 @@ func InitWorkspace(baseDir, repo string) error {
 
 	if err := f.Close(); err != nil {
 		return err
-
 	}
 	return nil
 }
@@ -60,9 +59,8 @@ func NewConfig(baseDir, metadataDir, repoUrl string) ArtConfig {
 }
 
 func LoadConfig(dir string) (ArtConfig, error) {
-
 	load := func(dir string) (map[string]interface{}, error) {
-		var config = make(map[string]interface{})
+		config := make(map[string]interface{})
 		configPath := path.Join(dir, ".art/config")
 
 		data, err := ioutil.ReadFile(configPath)
@@ -186,7 +184,7 @@ func (config *ArtConfig) Print() {
 
 func (config *ArtConfig) Save() error {
 	configPath := path.Join(config.MetadataDir, "config")
-	f, err := os.OpenFile(configPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	f, err := os.OpenFile(configPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o644)
 	if err != nil {
 		return err
 	}
@@ -198,7 +196,6 @@ func (config *ArtConfig) Save() error {
 	err = f.Close()
 	if err != nil {
 		return err
-
 	}
 
 	return nil
@@ -212,7 +209,7 @@ func (i ArtIgnore) ShouldIgnore(path string) bool {
 	for _, p := range i.patterns {
 		matched, err := regexp.MatchString(p, path)
 		if matched {
-			//fmt.Printf("I %s %s\n", path, p)
+			// fmt.Printf("I %s %s\n", path, p)
 			return true
 		}
 		if err != nil {

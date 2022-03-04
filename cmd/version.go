@@ -3,8 +3,9 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/spf13/cobra"
 	"runtime"
+
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -57,5 +58,4 @@ version.BuildInfo{"Version":"v0.1-dev","GitCommit":"59b5c650fbed4d91c1e54b7cb3c3
 }
 
 func init() {
-
 }

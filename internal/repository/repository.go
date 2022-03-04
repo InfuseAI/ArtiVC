@@ -6,8 +6,10 @@ import (
 	"strings"
 )
 
-type ListEntry fs.DirEntry
-type FileInfo fs.FileInfo
+type (
+	ListEntry fs.DirEntry
+	FileInfo  fs.FileInfo
+)
 
 type Repository interface {
 	Upload(localPath, repoPath string) error

@@ -33,5 +33,4 @@ func TestRemoveEmptyDirs(t *testing.T) {
 	assert.Empty(t, err)
 	_, err = os.Stat("/c/c/c")
 	assert.Error(t, err)
-
 }
