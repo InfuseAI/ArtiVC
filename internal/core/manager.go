@@ -167,6 +167,7 @@ func (mngr *ArtifactManager) GetRef(ref string) (string, error) {
 
 	err = mngr.repo.Download(refPath, localPath, nil)
 	if err != nil {
+		os.Remove(localPath)
 		return "", err
 	}
 
@@ -196,6 +197,7 @@ func (mngr *ArtifactManager) GetCommit(hash string) (*Commit, error) {
 
 		err = mngr.repo.Download(commitPath, localPath, nil)
 		if err != nil {
+			os.Remove(localPath)
 			return nil, err
 		}
 	}

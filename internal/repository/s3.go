@@ -90,14 +90,6 @@ func (repo *S3Repository) Download(repoPath, localPath string, m *meter.Meter) e
 		Key:    &key,
 	}
 
-	_, err := repo.client.HeadObject(context.TODO(), &s3.HeadObjectInput{
-		Bucket: &repo.Bucket,
-		Key:    &key,
-	})
-	if err != nil {
-		return err
-	}
-
 	downloader := manager.NewDownloader(repo.client)
 
 	dest, err := os.Create(localPath)
