@@ -15,6 +15,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/infuseai/artiv/internal/meter"
+
 	"github.com/fatih/color"
 	"github.com/infuseai/artiv/internal/executor"
 	"github.com/infuseai/artiv/internal/repository"
@@ -31,6 +33,9 @@ type ArtifactManager struct {
 
 	// repository
 	repo repository.Repository
+
+	// meter
+	meter *meter.Meter
 }
 
 func NewArtifactManager(config ArtConfig) (*ArtifactManager, error) {
@@ -77,7 +82,7 @@ func (mngr *ArtifactManager) UploadBlob(localPath, hash string, checkSkip bool) 
 	}
 
 	blobPath := filepath.Join(mngr.baseDir, localPath)
-	err := mngr.repo.Upload(blobPath, repoPath)
+	err := mngr.repo.Upload(blobPath, repoPath, mngr.meter)
 	return BlobUploadResult{Skip: false}, err
 }
 
@@ -94,7 +99,7 @@ func (mngr *ArtifactManager) DownloadBlob(localPath, remoteHash string) (BlobDow
 	}
 
 	repoPath := MakeObjectPath(remoteHash)
-	err = mngr.repo.Download(repoPath, blobPath)
+	err = mngr.repo.Download(repoPath, blobPath, mngr.meter)
 	if err != nil {
 		return BlobDownloadResult{}, err
 	}
@@ -110,7 +115,7 @@ func (mngr *ArtifactManager) Commit(commit Commit) error {
 		return err
 	}
 
-	err = mngr.repo.Upload(localPath, commitPath)
+	err = mngr.repo.Upload(localPath, commitPath, nil)
 	if err != nil {
 		return err
 	}
@@ -126,7 +131,7 @@ func (mngr *ArtifactManager) AddRef(ref string, commit string) error {
 		return err
 	}
 
-	err = mngr.repo.Upload(localPath, refPath)
+	err = mngr.repo.Upload(localPath, refPath, nil)
 	if err != nil {
 		return err
 	}
@@ -160,8 +165,9 @@ func (mngr *ArtifactManager) GetRef(ref string) (string, error) {
 		return "", err
 	}
 
-	err = mngr.repo.Download(refPath, localPath)
+	err = mngr.repo.Download(refPath, localPath, nil)
 	if err != nil {
+		os.Remove(localPath)
 		return "", err
 	}
 
@@ -189,8 +195,9 @@ func (mngr *ArtifactManager) GetCommit(hash string) (*Commit, error) {
 			return nil, err
 		}
 
-		err = mngr.repo.Download(commitPath, localPath)
+		err = mngr.repo.Download(commitPath, localPath, nil)
 		if err != nil {
+			os.Remove(localPath)
 			return nil, err
 		}
 	}
@@ -331,6 +338,7 @@ func (mngr *ArtifactManager) Push(options PushOptions) error {
 		}
 	}
 
+	mngr.meter = meter.NewMeter()
 	tasks := []executor.TaskFunc{}
 	mtx := sync.Mutex{}
 
@@ -349,18 +357,32 @@ func (mngr *ArtifactManager) Push(options PushOptions) error {
 					skipped++
 				}
 				mtx.Unlock()
-
-				fmt.Printf("\rupload objects: (%d/%d)", uploaded, total)
-				if skipped > 0 {
-					fmt.Printf(", skipped: %d", skipped)
-				}
-
 				return nil
 			}
 			tasks = append(tasks, task)
 		}
 	}
-	err = executor.ExecuteAll(0, tasks...)
+
+	ticker := time.NewTicker(time.Millisecond * 100)
+	defer ticker.Stop()
+
+	done := make(chan error)
+	go func() {
+		err = executor.ExecuteAll(0, tasks...)
+		done <- err
+	}()
+
+	stop := false
+	for !stop {
+		select {
+		case err = <-done:
+			stop = true
+		case <-ticker.C:
+		}
+		fmt.Printf("upload objects: (%d/%d), skipped: %d, speed: %5v/s    \r", uploaded, total, skipped, mngr.meter.CalculateSpeed())
+	}
+
+	mngr.meter = nil
 	if err != nil {
 		return err
 	}
@@ -525,6 +547,7 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 		}
 	}
 
+	mngr.meter = meter.NewMeter()
 	tasks := []executor.TaskFunc{}
 	mtx := sync.Mutex{}
 	for _, record := range result.Records {
@@ -540,7 +563,7 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 				mtx.Lock()
 				downloaded++
 				mtx.Unlock()
-				fmt.Printf("\rdownload objects: (%d/%d)", downloaded, total)
+
 			case DiffTypeDelete:
 				err := deleteFile(theRecord.Path)
 				if err != nil {
@@ -556,7 +579,27 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 		}
 		tasks = append(tasks, task)
 	}
-	err = executor.ExecuteAll(10, tasks...)
+
+	ticker := time.NewTicker(time.Millisecond * 100)
+	defer ticker.Stop()
+
+	done := make(chan error)
+	go func() {
+		err = executor.ExecuteAll(10, tasks...)
+		done <- err
+	}()
+
+	stop := false
+	for !stop {
+		select {
+		case err = <-done:
+			stop = true
+		case <-ticker.C:
+		}
+		fmt.Printf("download objects: (%d/%d), speed: %5v/s    \r", downloaded, total, mngr.meter.CalculateSpeed())
+	}
+	mngr.meter = nil
+
 	if err != nil {
 		return err
 	}

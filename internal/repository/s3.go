@@ -8,10 +8,12 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/infuseai/artiv/internal/meter"
 )
 
 type S3Repository struct {
@@ -23,17 +25,20 @@ type S3Repository struct {
 func NewS3Repository(bucket, basePath string) (*S3Repository, error) {
 	basePath = strings.TrimPrefix(basePath, "/")
 
+	cfg, err := config.LoadDefaultConfig(context.TODO())
+	if err != nil {
+		return nil, err
+	}
+	client := s3.NewFromConfig(cfg)
+
 	return &S3Repository{
 		Bucket:   bucket,
 		BasePath: basePath,
+		client:   client,
 	}, nil
 }
 
-func (repo *S3Repository) Upload(localPath, repoPath string) error {
-	if repo.client == nil {
-		repo.init()
-	}
-
+func (repo *S3Repository) Upload(localPath, repoPath string, m *meter.Meter) error {
 	sourceFileStat, err := os.Stat(localPath)
 	if err != nil {
 		return err
@@ -48,11 +53,24 @@ func (repo *S3Repository) Upload(localPath, repoPath string) error {
 		return err
 	}
 	defer source.Close()
+
+	fileInfo, err := source.Stat()
+	if err != nil {
+		return err
+	}
+
+	reader := &progressReader{
+		fp:      source,
+		size:    fileInfo.Size(),
+		signMap: map[int64]struct{}{},
+		meter:   m,
+	}
+
 	key := filepath.Join(repo.BasePath, repoPath)
 	input := &s3.PutObjectInput{
 		Bucket: &repo.Bucket,
 		Key:    &key,
-		Body:   source,
+		Body:   reader,
 	}
 
 	if sourceFileStat.Size() < manager.DefaultUploadPartSize {
@@ -64,21 +82,14 @@ func (repo *S3Repository) Upload(localPath, repoPath string) error {
 	return err
 }
 
-func (repo *S3Repository) Download(repoPath, localPath string) error {
-	if repo.client == nil {
-		repo.init()
-	}
-
+func (repo *S3Repository) Download(repoPath, localPath string, m *meter.Meter) error {
 	key := filepath.Join(repo.BasePath, repoPath)
 	input := &s3.GetObjectInput{
 		Bucket: &repo.Bucket,
 		Key:    &key,
 	}
 
-	output, err := repo.client.GetObject(context.TODO(), input)
-	if err != nil {
-		return err
-	}
+	downloader := manager.NewDownloader(repo.client)
 
 	dest, err := os.Create(localPath)
 	if err != nil {
@@ -86,16 +97,13 @@ func (repo *S3Repository) Download(repoPath, localPath string) error {
 		return err
 	}
 	defer dest.Close()
-	_, err = io.Copy(dest, output.Body)
 
+	writer := &progressWriter{writer: dest, meter: m}
+	_, err = downloader.Download(context.TODO(), writer, input)
 	return err
 }
 
 func (repo *S3Repository) Delete(repoPath string) error {
-	if repo.client == nil {
-		repo.init()
-	}
-
 	key := filepath.Join(repo.BasePath, repoPath)
 	input := &s3.DeleteObjectInput{
 		Bucket: &repo.Bucket,
@@ -107,10 +115,6 @@ func (repo *S3Repository) Delete(repoPath string) error {
 }
 
 func (repo *S3Repository) Stat(repoPath string) (FileInfo, error) {
-	if repo.client == nil {
-		repo.init()
-	}
-
 	key := filepath.Join(repo.BasePath, repoPath)
 	input := &s3.HeadObjectInput{
 		Bucket: &repo.Bucket,
@@ -121,10 +125,6 @@ func (repo *S3Repository) Stat(repoPath string) (FileInfo, error) {
 }
 
 func (repo *S3Repository) List(repoPath string) ([]ListEntry, error) {
-	if repo.client == nil {
-		repo.init()
-	}
-
 	fullRepoPath := filepath.Join(repo.BasePath, repoPath)
 	input := &s3.ListObjectsV2Input{
 		Bucket: &repo.Bucket,
@@ -142,14 +142,6 @@ func (repo *S3Repository) List(repoPath string) ([]ListEntry, error) {
 		entries = append(entries, &entry)
 	}
 	return entries, err
-}
-
-func (repo *S3Repository) init() {
-	cfg, err := config.LoadDefaultConfig(context.TODO())
-	if err != nil {
-		panic(err)
-	}
-	repo.client = s3.NewFromConfig(cfg)
 }
 
 type S3DirEntry struct {
@@ -170,4 +162,58 @@ func (e *S3DirEntry) Type() fs.FileMode {
 
 func (e *S3DirEntry) Info() (fs.FileInfo, error) {
 	return nil, nil
+}
+
+type progressReader struct {
+	fp      *os.File
+	size    int64
+	read    int64
+	signMap map[int64]struct{}
+	mux     sync.Mutex
+	meter   *meter.Meter
+}
+
+func (r *progressReader) Read(p []byte) (int, error) {
+	read, err := r.fp.Read(p)
+	if r.meter != nil {
+		r.meter.AddBytes(read)
+	}
+	return read, err
+}
+
+func (r *progressReader) ReadAt(p []byte, off int64) (int, error) {
+	n, err := r.fp.ReadAt(p, off)
+	if err != nil {
+		return n, err
+	}
+
+	r.mux.Lock()
+	// Ignore the first signature call
+	if _, ok := r.signMap[off]; ok {
+		// Got the length have read( or means has uploaded), and you can construct your message
+		r.read += int64(n)
+		if r.meter != nil {
+			r.meter.AddBytes(n)
+		}
+	} else {
+		r.signMap[off] = struct{}{}
+	}
+	r.mux.Unlock()
+	return n, err
+}
+
+func (r *progressReader) Seek(offset int64, whence int) (int64, error) {
+	return r.fp.Seek(offset, whence)
+}
+
+type progressWriter struct {
+	writer io.WriterAt
+	meter  *meter.Meter
+}
+
+func (w *progressWriter) WriteAt(p []byte, off int64) (int, error) {
+	if w.meter != nil {
+		w.meter.AddBytes(len(p))
+	}
+	return w.writer.WriteAt(p, off)
 }
