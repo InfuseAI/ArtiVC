@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/infuseai/artiv/internal/meter"
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -15,6 +14,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/infuseai/artiv/internal/meter"
 
 	"github.com/fatih/color"
 	"github.com/infuseai/artiv/internal/executor"
