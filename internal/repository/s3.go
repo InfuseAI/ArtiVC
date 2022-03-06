@@ -25,17 +25,20 @@ type S3Repository struct {
 func NewS3Repository(bucket, basePath string) (*S3Repository, error) {
 	basePath = strings.TrimPrefix(basePath, "/")
 
+	cfg, err := config.LoadDefaultConfig(context.TODO())
+	if err != nil {
+		return nil, err
+	}
+	client := s3.NewFromConfig(cfg)
+
 	return &S3Repository{
 		Bucket:   bucket,
 		BasePath: basePath,
+		client:   client,
 	}, nil
 }
 
 func (repo *S3Repository) Upload(localPath, repoPath string, m *meter.Meter) error {
-	if repo.client == nil {
-		repo.init()
-	}
-
 	sourceFileStat, err := os.Stat(localPath)
 	if err != nil {
 		return err
@@ -80,10 +83,6 @@ func (repo *S3Repository) Upload(localPath, repoPath string, m *meter.Meter) err
 }
 
 func (repo *S3Repository) Download(repoPath, localPath string, m *meter.Meter) error {
-	if repo.client == nil {
-		repo.init()
-	}
-
 	key := filepath.Join(repo.BasePath, repoPath)
 	input := &s3.GetObjectInput{
 		Bucket: &repo.Bucket,
@@ -105,10 +104,6 @@ func (repo *S3Repository) Download(repoPath, localPath string, m *meter.Meter) e
 }
 
 func (repo *S3Repository) Delete(repoPath string) error {
-	if repo.client == nil {
-		repo.init()
-	}
-
 	key := filepath.Join(repo.BasePath, repoPath)
 	input := &s3.DeleteObjectInput{
 		Bucket: &repo.Bucket,
@@ -120,10 +115,6 @@ func (repo *S3Repository) Delete(repoPath string) error {
 }
 
 func (repo *S3Repository) Stat(repoPath string) (FileInfo, error) {
-	if repo.client == nil {
-		repo.init()
-	}
-
 	key := filepath.Join(repo.BasePath, repoPath)
 	input := &s3.HeadObjectInput{
 		Bucket: &repo.Bucket,
@@ -134,10 +125,6 @@ func (repo *S3Repository) Stat(repoPath string) (FileInfo, error) {
 }
 
 func (repo *S3Repository) List(repoPath string) ([]ListEntry, error) {
-	if repo.client == nil {
-		repo.init()
-	}
-
 	fullRepoPath := filepath.Join(repo.BasePath, repoPath)
 	input := &s3.ListObjectsV2Input{
 		Bucket: &repo.Bucket,
@@ -155,14 +142,6 @@ func (repo *S3Repository) List(repoPath string) ([]ListEntry, error) {
 		entries = append(entries, &entry)
 	}
 	return entries, err
-}
-
-func (repo *S3Repository) init() {
-	cfg, err := config.LoadDefaultConfig(context.TODO())
-	if err != nil {
-		panic(err)
-	}
-	repo.client = s3.NewFromConfig(cfg)
 }
 
 type S3DirEntry struct {

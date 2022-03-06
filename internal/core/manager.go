@@ -379,7 +379,7 @@ func (mngr *ArtifactManager) Push(options PushOptions) error {
 			stop = true
 		case <-ticker.C:
 		}
-		fmt.Printf("\rupload objects: (%d/%d), skipped: %d, speed: %5v/s    ", uploaded, total, skipped, mngr.meter.CalculateSpeed())
+		fmt.Printf("upload objects: (%d/%d), skipped: %d, speed: %5v/s    \r", uploaded, total, skipped, mngr.meter.CalculateSpeed())
 	}
 
 	mngr.meter = nil
@@ -596,7 +596,7 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 			stop = true
 		case <-ticker.C:
 		}
-		fmt.Printf("\rdownload objects: (%d/%d), speed: %5v/s    ", downloaded, total, mngr.meter.CalculateSpeed())
+		fmt.Printf("download objects: (%d/%d), speed: %5v/s    \r", downloaded, total, mngr.meter.CalculateSpeed())
 	}
 	mngr.meter = nil
 
