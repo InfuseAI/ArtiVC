@@ -392,12 +392,24 @@ func (mngr *ArtifactManager) Push(options PushOptions) error {
 
 	_, hash := MakeCommitMetadata(commit)
 	fmt.Println("create commit: " + hash)
-	mngr.Commit(*commit)
+	err = mngr.Commit(*commit)
+	if err != nil {
+		return err
+	}
+
 	fmt.Println("update ref: latest -> " + hash)
-	mngr.AddRef(RefLatest, hash)
+	err = mngr.AddRef(RefLatest, hash)
+	if err != nil {
+		return err
+	}
+
 	if options.Tag != nil {
 		tag := *options.Tag
-		mngr.AddTag(hash, tag)
+		err = mngr.AddTag(hash, tag)
+		if err != nil {
+			return err
+		}
+
 		fmt.Println("add tag: " + tag + " -> " + hash)
 	}
 
