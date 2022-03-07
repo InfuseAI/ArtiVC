@@ -68,3 +68,74 @@ func TestPushPull(t *testing.T) {
 	_, err := os.Stat(filepath.Join(wp2, ".art/config"))
 	assert.False(t, os.IsNotExist(err))
 }
+
+func TestPushWithIgnore(t *testing.T) {
+	t.TempDir()
+	wp1 := t.TempDir() + "/wp1"
+	wp2 := t.TempDir() + "/wp2"
+	repo := t.TempDir() + "/repo"
+
+	writeFile([]byte("a"), filepath.Join(wp1, "a"))
+	writeFile([]byte("b"), filepath.Join(wp1, "b"))
+	writeFile([]byte("c"), filepath.Join(wp1, "c"))
+
+	artIgnore := `
+a
+e
+`
+
+	writeFile([]byte(artIgnore), filepath.Join(wp1, ".artignore"))
+
+	InitWorkspace(wp1, repo)
+	config, _ := LoadConfig(wp1)
+	mngr1, _ := NewArtifactManager(config)
+	mngr1.Push(PushOptions{})
+
+	InitWorkspace(wp2, repo)
+	config, _ = LoadConfig(wp2)
+	mngr2, _ := NewArtifactManager(config)
+	mngr2.Pull(PullOptions{})
+
+	data, _ := readFile(filepath.Join(wp2, "a"))
+	assert.Equal(t, "", string(data))
+	data, _ = readFile(filepath.Join(wp2, "b"))
+	assert.Equal(t, "b", string(data))
+	data, _ = readFile(filepath.Join(wp2, "c"))
+	assert.Equal(t, "c", string(data))
+}
+
+func TestPullWithIgnore(t *testing.T) {
+	t.TempDir()
+	wp1 := t.TempDir() + "/wp1"
+	wp2 := t.TempDir() + "/wp2"
+	repo := t.TempDir() + "/repo"
+
+	// push
+	writeFile([]byte("a"), filepath.Join(wp1, "a"))
+	writeFile([]byte("b"), filepath.Join(wp1, "b"))
+	writeFile([]byte("c"), filepath.Join(wp1, "c"))
+	InitWorkspace(wp1, repo)
+	config, _ := LoadConfig(wp1)
+	mngr1, _ := NewArtifactManager(config)
+	mngr1.Push(PushOptions{})
+
+	// pull
+	artIgnore := `
+a
+e
+`
+	writeFile([]byte(artIgnore), filepath.Join(wp2, ".artignore"))
+	writeFile([]byte("abc"), filepath.Join(wp2, "a"))
+	writeFile([]byte("efg"), filepath.Join(wp2, "e"))
+	InitWorkspace(wp2, repo)
+	config, _ = LoadConfig(wp2)
+	mngr2, _ := NewArtifactManager(config)
+	mngr2.Pull(PullOptions{})
+
+	data, _ := readFile(filepath.Join(wp2, "a"))
+	assert.Equal(t, "abc", string(data))
+	data, _ = readFile(filepath.Join(wp2, "c"))
+	assert.Equal(t, "c", string(data))
+	data, _ = readFile(filepath.Join(wp2, "e"))
+	assert.Equal(t, "efg", string(data))
+}

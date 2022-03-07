@@ -235,6 +235,10 @@ func NewArtIgnore(dir string) ArtIgnore {
 	for scanner.Scan() {
 		text := strings.TrimSpace(scanner.Text())
 
+		if len(text) == 0 {
+			continue
+		}
+
 		// skip # comment line
 		if strings.IndexAny(text, "#") == 0 {
 			continue

@@ -48,12 +48,17 @@ type PullOptions struct {
 	RefOrCommit *string
 }
 
+type PathFilter func(path string) bool
+
 type DiffOptions struct {
-	Mode        ChangeMode
-	LeftRef     string
-	LeftCommit  *Commit
-	RightRef    string
-	RightCommit *Commit
+	Mode         ChangeMode
+	LeftRef      string
+	LeftCommit   *Commit
+	RightRef     string
+	RightCommit  *Commit
+	AddFilter    PathFilter
+	ChangeFilter PathFilter
+	DeleteFilter PathFilter
 }
 
 type DiffType int
