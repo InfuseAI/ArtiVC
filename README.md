@@ -9,7 +9,17 @@ To store and share large files, we may use NFS or object storage (e.g. s3, MinIO
 # Quick Start
 
 ## Install ArtiV
+
+**Install from Release Page**
+
 Download the latest ArtiV in the [release](https://github.com/InfuseAI/ArtiV/releases) page
+
+**Install by homebrew**
+
+```
+brew tap infuseai/artiv 
+brew install artiv
+```
 
 ## Push data
 1. Select the bucket and path to put your versioned data. Here we use `s3://mybucket/path/to/repo`. You can use local repository instead (e.g. `/path/to/repo`)
