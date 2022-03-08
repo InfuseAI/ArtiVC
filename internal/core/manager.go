@@ -298,15 +298,14 @@ func (mngr *ArtifactManager) Push(options PushOptions) error {
 		parent = ""
 	}
 	checkSkip := true
-
-	commit, err := mngr.MakeWorkspaceCommit(parent, options.Message)
-	if err != nil {
-		return err
-	}
-
 	artIgnore := NewArtIgnore(mngr.baseDir)
 	artIgnoreFilter := func(path string) bool {
 		return !artIgnore.ShouldIgnore(path)
+	}
+
+	commit, err := mngr.MakeWorkspaceCommit(parent, options.Message, artIgnoreFilter)
+	if err != nil {
+		return err
 	}
 
 	result, err := mngr.Diff(DiffOptions{
@@ -436,7 +435,7 @@ func (mngr *ArtifactManager) MakeEmptyCommit() *Commit {
 	}
 }
 
-func (mngr *ArtifactManager) MakeWorkspaceCommit(parent string, message *string) (*Commit, error) {
+func (mngr *ArtifactManager) MakeWorkspaceCommit(parent string, message *string, filter func(path string) bool) (*Commit, error) {
 	baseDir := mngr.baseDir
 	commit := Commit{
 		CreatedAt: time.Now(),
@@ -459,6 +458,10 @@ func (mngr *ArtifactManager) MakeWorkspaceCommit(parent string, message *string)
 
 			path := absPath[len(baseDir)+1:]
 			if strings.HasPrefix(path, ".art/") {
+				return nil
+			}
+
+			if filter != nil && !filter(path) {
 				return nil
 			}
 
@@ -532,7 +535,11 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 	}
 
 	// Get the local commit hash
-	commitLocal, err := mngr.MakeWorkspaceCommit("", nil)
+	artIgnore := NewArtIgnore(mngr.baseDir)
+	artIgnoreFilter := func(path string) bool {
+		return !artIgnore.ShouldIgnore(path)
+	}
+	commitLocal, err := mngr.MakeWorkspaceCommit("", nil, artIgnoreFilter)
 	if err != nil {
 		if err != ErrWorkspaceNotFound {
 			return err
@@ -542,11 +549,6 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 	}
 
 	// Diff
-	artIgnore := NewArtIgnore(mngr.baseDir)
-	artIgnoreFilter := func(path string) bool {
-		return !artIgnore.ShouldIgnore(path)
-	}
-
 	result, err := mngr.Diff(DiffOptions{
 		Mode:         options.Mode,
 		LeftCommit:   commitLocal,

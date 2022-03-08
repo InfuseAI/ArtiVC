@@ -9,12 +9,11 @@ import (
 )
 
 func TestPutGet(t *testing.T) {
-	tempDir := t.TempDir()
-	wp1 := tempDir + "/wp1"
-	meta1 := tempDir + "/meta1"
-	wp2 := tempDir + "/wp2"
-	meta2 := tempDir + "/meta2"
-	repo := tempDir + "/repo"
+	wp1 := t.TempDir()
+	meta1 := t.TempDir()
+	wp2 := t.TempDir()
+	meta2 := t.TempDir()
+	repo := t.TempDir()
 
 	path := "test"
 	content := "test-data"
@@ -42,10 +41,9 @@ func TestPutGet(t *testing.T) {
 }
 
 func TestPushPull(t *testing.T) {
-	t.TempDir()
-	wp1 := t.TempDir() + "/wp1"
-	wp2 := t.TempDir() + "/wp2"
-	repo := t.TempDir() + "/repo"
+	wp1 := t.TempDir()
+	wp2 := t.TempDir()
+	repo := t.TempDir()
 
 	path := "test"
 	content := "test-data"
@@ -70,18 +68,17 @@ func TestPushPull(t *testing.T) {
 }
 
 func TestPushWithIgnore(t *testing.T) {
-	t.TempDir()
-	wp1 := t.TempDir() + "/wp1"
-	wp2 := t.TempDir() + "/wp2"
-	repo := t.TempDir() + "/repo"
+	wp1 := t.TempDir()
+	wp2 := t.TempDir()
+	repo := t.TempDir()
 
 	writeFile([]byte("a"), filepath.Join(wp1, "a"))
 	writeFile([]byte("b"), filepath.Join(wp1, "b"))
 	writeFile([]byte("c"), filepath.Join(wp1, "c"))
 
 	artIgnore := `
-a
-e
+^a$
+^e$
 `
 
 	writeFile([]byte(artIgnore), filepath.Join(wp1, ".artignore"))
@@ -89,12 +86,14 @@ e
 	InitWorkspace(wp1, repo)
 	config, _ := LoadConfig(wp1)
 	mngr1, _ := NewArtifactManager(config)
-	mngr1.Push(PushOptions{})
+	err := mngr1.Push(PushOptions{})
+	assert.Empty(t, err)
 
 	InitWorkspace(wp2, repo)
 	config, _ = LoadConfig(wp2)
 	mngr2, _ := NewArtifactManager(config)
-	mngr2.Pull(PullOptions{})
+	err = mngr2.Pull(PullOptions{})
+	assert.Empty(t, err)
 
 	data, _ := readFile(filepath.Join(wp2, "a"))
 	assert.Equal(t, "", string(data))
@@ -105,10 +104,9 @@ e
 }
 
 func TestPullWithIgnore(t *testing.T) {
-	t.TempDir()
-	wp1 := t.TempDir() + "/wp1"
-	wp2 := t.TempDir() + "/wp2"
-	repo := t.TempDir() + "/repo"
+	wp1 := t.TempDir()
+	wp2 := t.TempDir()
+	repo := t.TempDir()
 
 	// push
 	writeFile([]byte("a"), filepath.Join(wp1, "a"))
@@ -117,12 +115,13 @@ func TestPullWithIgnore(t *testing.T) {
 	InitWorkspace(wp1, repo)
 	config, _ := LoadConfig(wp1)
 	mngr1, _ := NewArtifactManager(config)
-	mngr1.Push(PushOptions{})
+	err := mngr1.Push(PushOptions{})
+	assert.Empty(t, err)
 
 	// pull
 	artIgnore := `
-a
-e
+^a$
+^e$
 `
 	writeFile([]byte(artIgnore), filepath.Join(wp2, ".artignore"))
 	writeFile([]byte("abc"), filepath.Join(wp2, "a"))
@@ -130,7 +129,8 @@ e
 	InitWorkspace(wp2, repo)
 	config, _ = LoadConfig(wp2)
 	mngr2, _ := NewArtifactManager(config)
-	mngr2.Pull(PullOptions{})
+	err = mngr2.Pull(PullOptions{Mode: ChangeModeMerge})
+	assert.Empty(t, err)
 
 	data, _ := readFile(filepath.Join(wp2, "a"))
 	assert.Equal(t, "abc", string(data))
