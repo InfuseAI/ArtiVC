@@ -298,15 +298,22 @@ func (mngr *ArtifactManager) Push(options PushOptions) error {
 		parent = ""
 	}
 	checkSkip := true
+	artIgnore := NewArtIgnore(mngr.baseDir)
+	artIgnoreFilter := func(path string) bool {
+		return !artIgnore.ShouldIgnore(path)
+	}
 
-	commit, err := mngr.MakeWorkspaceCommit(parent, options.Message)
+	commit, err := mngr.MakeWorkspaceCommit(parent, options.Message, artIgnoreFilter)
 	if err != nil {
 		return err
 	}
 
 	result, err := mngr.Diff(DiffOptions{
-		LeftRef:     RefLatest,
-		RightCommit: commit,
+		LeftRef:      RefLatest,
+		RightCommit:  commit,
+		AddFilter:    artIgnoreFilter,
+		ChangeFilter: artIgnoreFilter,
+		DeleteFilter: nil,
 	})
 	if err != nil {
 		if err != ErrEmptyRepository {
@@ -314,8 +321,11 @@ func (mngr *ArtifactManager) Push(options PushOptions) error {
 		} else {
 			checkSkip = false
 			result, err = mngr.Diff(DiffOptions{
-				LeftCommit:  mngr.MakeEmptyCommit(),
-				RightCommit: commit,
+				LeftCommit:   mngr.MakeEmptyCommit(),
+				RightCommit:  commit,
+				AddFilter:    artIgnoreFilter,
+				ChangeFilter: artIgnoreFilter,
+				DeleteFilter: nil,
 			})
 			if err != nil {
 				return err
@@ -425,7 +435,7 @@ func (mngr *ArtifactManager) MakeEmptyCommit() *Commit {
 	}
 }
 
-func (mngr *ArtifactManager) MakeWorkspaceCommit(parent string, message *string) (*Commit, error) {
+func (mngr *ArtifactManager) MakeWorkspaceCommit(parent string, message *string, filter func(path string) bool) (*Commit, error) {
 	baseDir := mngr.baseDir
 	commit := Commit{
 		CreatedAt: time.Now(),
@@ -447,7 +457,11 @@ func (mngr *ArtifactManager) MakeWorkspaceCommit(parent string, message *string)
 			}
 
 			path := absPath[len(baseDir)+1:]
-			if strings.HasPrefix(path, ".art") {
+			if strings.HasPrefix(path, ".art/") {
+				return nil
+			}
+
+			if filter != nil && !filter(path) {
 				return nil
 			}
 
@@ -521,7 +535,11 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 	}
 
 	// Get the local commit hash
-	commitLocal, err := mngr.MakeWorkspaceCommit("", nil)
+	artIgnore := NewArtIgnore(mngr.baseDir)
+	artIgnoreFilter := func(path string) bool {
+		return !artIgnore.ShouldIgnore(path)
+	}
+	commitLocal, err := mngr.MakeWorkspaceCommit("", nil, artIgnoreFilter)
 	if err != nil {
 		if err != ErrWorkspaceNotFound {
 			return err
@@ -532,9 +550,12 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 
 	// Diff
 	result, err := mngr.Diff(DiffOptions{
-		Mode:        options.Mode,
-		LeftCommit:  commitLocal,
-		RightCommit: commitRemote,
+		Mode:         options.Mode,
+		LeftCommit:   commitLocal,
+		RightCommit:  commitRemote,
+		AddFilter:    artIgnoreFilter,
+		ChangeFilter: artIgnoreFilter,
+		DeleteFilter: artIgnoreFilter,
 	})
 	if err != nil {
 		return err
@@ -721,6 +742,8 @@ func (mngr *ArtifactManager) Diff(option DiffOptions) (DiffResult, error) {
 	var commitHash string
 	var err error
 
+	// Step 1: Prepare the left and right commits
+
 	// left
 	leftCommit := option.LeftCommit
 	if leftCommit == nil {
@@ -760,12 +783,9 @@ func (mngr *ArtifactManager) Diff(option DiffOptions) (DiffResult, error) {
 		entries[blob.Path] = entry
 	}
 
-	// Merge the "added" and "deleted" with the same content to "renamed".
-	// key: hash
-	// value: {type, path, newPath}
+	// Step 2: Compare left and right and create the changesets (added, delelete, changed)
 	mapAdded := map[string][]DiffRecord{}
 	mapDeleted := map[string][]DiffRecord{}
-	mapRenamed := map[string][]DiffRecord{}
 	mapChanged := map[string][]DiffRecord{}
 
 	appendOrMake := func(s []DiffRecord, item DiffRecord) []DiffRecord {
@@ -776,26 +796,43 @@ func (mngr *ArtifactManager) Diff(option DiffOptions) (DiffResult, error) {
 		}
 	}
 
-	artIgnore := NewArtIgnore(mngr.baseDir)
-
 	for path, entry := range entries {
 		if entry.left == nil && entry.right != nil {
-			// ignore added when the path is ignored
-			if !artIgnore.ShouldIgnore(path) {
-				record := DiffRecord{Type: DiffTypeAdd, Path: entry.right.Path, Hash: entry.right.Hash}
-				mapAdded[entry.right.Hash] = appendOrMake(mapAdded[entry.right.Hash], record)
+			if option.AddFilter != nil {
+				if !option.AddFilter(path) {
+					continue
+				}
 			}
+
+			record := DiffRecord{Type: DiffTypeAdd, Path: entry.right.Path, Hash: entry.right.Hash}
+			mapAdded[entry.right.Hash] = appendOrMake(mapAdded[entry.right.Hash], record)
 		} else if entry.left != nil && entry.right == nil {
-			if option.Mode != ChangeModeMerge {
-				record := DiffRecord{Type: DiffTypeDelete, Path: entry.left.Path, Hash: entry.left.Hash}
-				mapDeleted[entry.left.Hash] = appendOrMake(mapDeleted[entry.left.Hash], record)
+			if option.Mode == ChangeModeMerge {
+				continue
 			}
+
+			if option.DeleteFilter != nil {
+				if !option.DeleteFilter(path) {
+					continue
+				}
+			}
+
+			record := DiffRecord{Type: DiffTypeDelete, Path: entry.left.Path, Hash: entry.left.Hash}
+			mapDeleted[entry.left.Hash] = appendOrMake(mapDeleted[entry.left.Hash], record)
 		} else if entry.left.Hash != entry.right.Hash {
+			if option.ChangeFilter != nil {
+				if !option.ChangeFilter(path) {
+					continue
+				}
+			}
+
 			record := DiffRecord{Type: DiffTypeChange, Path: entry.left.Path, Hash: entry.left.Hash}
 			mapChanged[entry.left.Hash] = appendOrMake(mapChanged[entry.left.Hash], record)
 		}
 	}
 
+	// Step3: Merge "added" and "deleted" with the same content hash to "rename"
+	mapRenamed := map[string][]DiffRecord{}
 	for hash, addedPaths := range mapAdded {
 		deleledPaths := mapDeleted[hash]
 		if deleledPaths == nil {
@@ -825,7 +862,7 @@ func (mngr *ArtifactManager) Diff(option DiffOptions) (DiffResult, error) {
 		mapRenamed[hash] = renamedRecords
 	}
 
-	// Merge the records from map
+	// Step 4: Merge the the 4 maps to the diff record list
 	records := []DiffRecord{}
 	var conflict bool
 	for _, added := range mapAdded {
