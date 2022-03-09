@@ -3,6 +3,8 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	neturl "net/url"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -32,4 +34,21 @@ func parseRepoStr(repoAndRef string) (repoUrl string, ref string, err error) {
 		err = errors.New("Invalid repository: " + repoAndRef)
 	}
 	return
+}
+
+func transformRepoUrl(base string, repo string) (string, error) {
+	url, err := neturl.Parse(repo)
+	if err != nil {
+		return "", err
+	}
+
+	if url.Scheme != "" {
+		return repo, nil
+	}
+
+	if strings.HasPrefix(repo, "/") {
+		return repo, nil
+	}
+
+	return filepath.Abs(filepath.Join(base, url.Path))
 }

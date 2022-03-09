@@ -52,8 +52,18 @@ var configCommand = &cobra.Command{
 					return
 				}
 
-				_, err := repository.NewRepository(value)
-				exitWithError(err)
+				cwd, _ := os.Getwd()
+				repo, err := transformRepoUrl(cwd, value)
+				if err != nil {
+					exitWithError(err)
+					return
+				}
+
+				_, err = repository.NewRepository(repo)
+				if err != nil {
+					exitWithError(err)
+					return
+				}
 			}
 
 			config.Set(key, value)
