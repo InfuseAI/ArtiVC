@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test(t *testing.T) {
+func TestTransformRepoUrl(t *testing.T) {
 	baseDir := "/tmp/artiv"
 	testCases := []struct {
 		desc string
