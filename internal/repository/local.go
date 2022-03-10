@@ -54,19 +54,45 @@ func (repo *LocalFileSystemRepository) Upload(localPath, repoPath string, m *met
 	}
 	defer source.Close()
 
+	// Copy from source to tmp
+	tmpDir := path.Join(repo.RepoDir, "tmp")
+	err = os.MkdirAll(tmpDir, fs.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	tmp, err := os.CreateTemp(tmpDir, "*")
+	if err != nil {
+		return err
+	}
+	tmpPath := tmp.Name()
+	defer os.Remove(tmpPath)
+	_, err = meter.CopyWithMeter(tmp, source, m)
+	if err != nil {
+		return err
+	}
+	err = tmp.Close()
+	if err != nil {
+		return err
+	}
+
+	// Move from tmp to dest
 	destPath := path.Join(repo.RepoDir, repoPath)
 	err = os.MkdirAll(filepath.Dir(destPath), fs.ModePerm)
 	if err != nil {
 		return err
 	}
+	err = os.Remove(destPath)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
 
-	destination, err := os.Create(destPath)
+	err = os.Rename(tmpPath, destPath)
 	if err != nil {
 		return err
 	}
-	defer destination.Close()
-	_, err = meter.CopyWithMeter(destination, source, m)
-	return err
+
+	return nil
 }
 
 func (repo *LocalFileSystemRepository) Download(repoPath, localPath string, m *meter.Meter) error {
