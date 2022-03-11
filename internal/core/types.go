@@ -35,23 +35,16 @@ type PushOptions struct {
 
 type ChangeMode int
 
-const (
-	ChangeModeNone = iota
-	ChangeModeMerge
-	ChangeModeSync
-)
-
 type PullOptions struct {
 	DryRun      bool
 	NoFetch     bool
-	Mode        ChangeMode
+	Delete      bool
 	RefOrCommit *string
 }
 
 type PathFilter func(path string) bool
 
 type DiffOptions struct {
-	Mode         ChangeMode
 	LeftRef      string
 	LeftCommit   *Commit
 	RightRef     string
@@ -59,6 +52,7 @@ type DiffOptions struct {
 	AddFilter    PathFilter
 	ChangeFilter PathFilter
 	DeleteFilter PathFilter
+	NoDelete     bool
 }
 
 type DiffType int
@@ -79,8 +73,7 @@ type DiffRecord struct {
 }
 
 type DiffResult struct {
-	Conflict bool
-	Records  []DiffRecord
+	Records []DiffRecord
 }
 
 type BlobDownloadResult struct {
