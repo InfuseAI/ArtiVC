@@ -129,7 +129,7 @@ func TestPullWithIgnore(t *testing.T) {
 	InitWorkspace(wp2, repo)
 	config, _ = LoadConfig(wp2)
 	mngr2, _ := NewArtifactManager(config)
-	err = mngr2.Pull(PullOptions{Mode: ChangeModeMerge})
+	err = mngr2.Pull(PullOptions{})
 	assert.Empty(t, err)
 
 	data, _ := readFile(filepath.Join(wp2, "a"))

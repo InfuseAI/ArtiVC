@@ -584,7 +584,7 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 
 	// Diff
 	result, err := mngr.Diff(DiffOptions{
-		Mode:         options.Mode,
+		NoDelete:     !options.Delete,
 		LeftCommit:   commitLocal,
 		RightCommit:  commitRemote,
 		AddFilter:    artIgnoreFilter,
@@ -593,11 +593,6 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 	})
 	if err != nil {
 		return err
-	}
-
-	if result.Conflict {
-		result.Print(true)
-		return ErrConflict
 	}
 
 	if options.DryRun || !result.IsChanged() {
@@ -671,7 +666,7 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 		return err
 	}
 
-	if options.Mode == ChangeModeSync {
+	if options.Delete {
 		_, err = removeEmptyDirs(mngr.baseDir, false)
 		if err != nil {
 			return err
@@ -841,7 +836,7 @@ func (mngr *ArtifactManager) Diff(option DiffOptions) (DiffResult, error) {
 			record := DiffRecord{Type: DiffTypeAdd, Path: entry.right.Path, Hash: entry.right.Hash}
 			mapAdded[entry.right.Hash] = appendOrMake(mapAdded[entry.right.Hash], record)
 		} else if entry.left != nil && entry.right == nil {
-			if option.Mode == ChangeModeMerge {
+			if option.NoDelete {
 				continue
 			}
 
@@ -898,30 +893,20 @@ func (mngr *ArtifactManager) Diff(option DiffOptions) (DiffResult, error) {
 
 	// Step 4: Merge the the 4 maps to the diff record list
 	records := []DiffRecord{}
-	var conflict bool
 	for _, added := range mapAdded {
 		records = append(records, added...)
 	}
 
 	for _, deleted := range mapDeleted {
 		records = append(records, deleted...)
-		if option.Mode == ChangeModeNone {
-			conflict = true
-		}
 	}
 
 	for _, changed := range mapChanged {
 		records = append(records, changed...)
-		if option.Mode == ChangeModeNone {
-			conflict = true
-		}
 	}
 
 	for _, renamed := range mapRenamed {
 		records = append(records, renamed...)
-		if option.Mode == ChangeModeNone {
-			conflict = true
-		}
 	}
 
 	sort.Slice(records, func(i, j int) bool {
@@ -929,8 +914,7 @@ func (mngr *ArtifactManager) Diff(option DiffOptions) (DiffResult, error) {
 	})
 
 	return DiffResult{
-		Conflict: conflict,
-		Records:  records,
+		Records: records,
 	}, nil
 }
 
