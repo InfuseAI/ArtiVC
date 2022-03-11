@@ -74,7 +74,8 @@ type DiffRecord struct {
 	Type    DiffType
 	Hash    string
 	Path    string
-	NewPath string
+	OldPath string
+	OldHash string
 }
 
 type DiffResult struct {

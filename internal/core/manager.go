@@ -86,20 +86,56 @@ func (mngr *ArtifactManager) UploadBlob(localPath, hash string, checkSkip bool) 
 	return BlobUploadResult{Skip: false}, err
 }
 
-func (mngr *ArtifactManager) DownloadBlob(localPath, remoteHash string) (BlobDownloadResult, error) {
-	hash, err := Sha1SumFromFile(path.Join(mngr.baseDir, localPath))
-	if err == nil && hash == remoteHash {
-		return BlobDownloadResult{Skip: true}, nil
+func (mngr *ArtifactManager) Download(repoPath, localPath string, meter *meter.Meter) error {
+	// Copy from repo to tmp
+	tmpDir := path.Join(mngr.metadataDir, "tmp")
+	err := os.MkdirAll(tmpDir, fs.ModePerm)
+	if err != nil {
+		return err
 	}
+
+	tmp, err := os.CreateTemp(tmpDir, "*")
+	if err != nil {
+		return err
+	}
+	tmp.Close()
+
+	tmpPath := tmp.Name()
+	defer os.Remove(tmpPath)
+
+	err = mngr.repo.Download(repoPath, tmpPath, mngr.meter)
+	if err != nil {
+		return err
+	}
+
+	// Move from tmp to local
+	err = os.MkdirAll(filepath.Dir(localPath), fs.ModePerm)
+	if err != nil {
+		return err
+	}
+	err = os.Remove(localPath)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
+	err = os.Rename(tmpPath, localPath)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (mngr *ArtifactManager) DownloadBlob(localPath, hash string) (BlobDownloadResult, error) {
 	blobPath := filepath.Join(mngr.baseDir, localPath)
 
-	err = mkdirsForFile(blobPath)
+	err := mkdirsForFile(blobPath)
 	if err != nil {
 		return BlobDownloadResult{}, err
 	}
 
-	repoPath := MakeObjectPath(remoteHash)
-	err = mngr.repo.Download(repoPath, blobPath, mngr.meter)
+	repoPath := MakeObjectPath(hash)
+	err = mngr.Download(repoPath, blobPath, mngr.meter)
 	if err != nil {
 		return BlobDownloadResult{}, err
 	}
@@ -165,9 +201,8 @@ func (mngr *ArtifactManager) GetRef(ref string) (string, error) {
 		return "", err
 	}
 
-	err = mngr.repo.Download(refPath, localPath, nil)
+	err = mngr.Download(refPath, localPath, nil)
 	if err != nil {
-		os.Remove(localPath)
 		return "", err
 	}
 
@@ -195,9 +230,8 @@ func (mngr *ArtifactManager) GetCommit(hash string) (*Commit, error) {
 			return nil, err
 		}
 
-		err = mngr.repo.Download(commitPath, localPath, nil)
+		err = mngr.Download(commitPath, localPath, nil)
 		if err != nil {
-			os.Remove(localPath)
 			return nil, err
 		}
 	}
@@ -603,7 +637,7 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 					return err
 				}
 			case DiffTypeRename:
-				err := renameFile(theRecord.Path, theRecord.NewPath)
+				err := renameFile(theRecord.OldPath, theRecord.Path)
 				if err != nil {
 					return err
 				}
@@ -826,7 +860,7 @@ func (mngr *ArtifactManager) Diff(option DiffOptions) (DiffResult, error) {
 				}
 			}
 
-			record := DiffRecord{Type: DiffTypeChange, Path: entry.left.Path, Hash: entry.left.Hash}
+			record := DiffRecord{Type: DiffTypeChange, Path: entry.left.Path, Hash: entry.right.Hash, OldHash: entry.left.Hash}
 			mapChanged[entry.left.Hash] = appendOrMake(mapChanged[entry.left.Hash], record)
 		}
 	}
@@ -851,8 +885,8 @@ func (mngr *ArtifactManager) Diff(option DiffOptions) (DiffResult, error) {
 
 			record := DiffRecord{
 				Type:    DiffTypeRename,
-				Path:    deleledPaths[i].Path,
-				NewPath: addedPaths[i].Path,
+				OldPath: deleledPaths[i].Path,
+				Path:    addedPaths[i].Path,
 			}
 
 			renamedRecords = append(renamedRecords, record)
@@ -1058,7 +1092,7 @@ func (result *DiffResult) Print(verbose bool) {
 			modified++
 		case DiffTypeRename:
 			if verbose {
-				color.HiYellow(fmt.Sprintf("R %s -> %s\n", record.Path, record.NewPath))
+				color.HiYellow(fmt.Sprintf("R %s -> %s\n", record.OldPath, record.Path))
 			}
 			renamed++
 		}
