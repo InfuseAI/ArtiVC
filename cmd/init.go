@@ -17,7 +17,7 @@ var initCommand = &cobra.Command{
 	Example: `  # Init a workspace with local repository
   art init /path/to/mydataset
 
-  # Init a workspace with s3 repoisotry
+  # Init a workspace with s3 repository
   art init s3://mybucket/path/to/mydataset`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
