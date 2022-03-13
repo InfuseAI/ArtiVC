@@ -3,7 +3,9 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"io"
 	neturl "net/url"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -51,4 +53,18 @@ func transformRepoUrl(base string, repo string) (string, error) {
 	}
 
 	return filepath.Abs(filepath.Join(base, url.Path))
+}
+
+func IsDirEmpty(dir string) bool {
+	f, err := os.Open(dir)
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+
+	_, err = f.Readdirnames(1)
+	if err == io.EOF {
+		return true
+	}
+	return false
 }
