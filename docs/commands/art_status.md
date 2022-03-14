@@ -1,25 +1,22 @@
-## art log
+## art status
 
-Log commits
+Show the status of the workspace
 
 ```
-art log [<commit>|<tag>]
+art status
 ```
 
 ### Examples
 
 ```
-  # Log commits from the latest
-  art log
-
-  # Log commits from a specific version
-  art log v1.0.0
+	# check current status
+	art status
 ```
 
 ### Options
 
 ```
-  -h, --help   help for log
+  -h, --help   help for status
 ```
 
 ### SEE ALSO
