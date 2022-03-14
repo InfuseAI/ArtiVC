@@ -15,7 +15,7 @@ import (
 
 var cloneCommand = &cobra.Command{
 	Use:                   "clone <repository> [<dir>]",
-	Short:                 "clone a workspace",
+	Short:                 "Clone a workspace",
 	DisableFlagsInUseLine: true,
 	Example: `  # clone a workspace with local repository
   art clone /path/to/mydataset
