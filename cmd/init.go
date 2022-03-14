@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 
@@ -39,6 +40,7 @@ var initCommand = &cobra.Command{
 			return
 		}
 
+		fmt.Printf("Initialize the artiv workspace of the repository '%s'\n", repo)
 		core.InitWorkspace(cwd, repo)
 	},
 }

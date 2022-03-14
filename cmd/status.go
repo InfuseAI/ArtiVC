@@ -1,15 +1,17 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/infuseai/artiv/internal/core"
 	"github.com/spf13/cobra"
 )
 
 var statusCommand = &cobra.Command{
 	Use:                   "status",
-	Short:                 "Diff between the remote repository and the workspace",
+	Short:                 "Show the status of the workspace",
 	DisableFlagsInUseLine: true,
-	Example: `	# check current differences
+	Example: `	# check current status
 	art status`,
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -27,6 +29,8 @@ var statusCommand = &cobra.Command{
 		if err != nil {
 			exitWithError(err)
 		}
+
+		fmt.Printf("workspace of the repository '%s'\n\n", config.RepoUrl())
 
 		result, err := mngr.Status()
 		if err != nil {

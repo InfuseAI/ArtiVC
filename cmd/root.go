@@ -51,13 +51,13 @@ func init() {
 		initCommand,
 		cloneCommand,
 		configCommand,
+		statusCommand,
 		pullCmd,
 		pushCmd,
 		tagCommand,
 		listCommand,
 		logCommand,
 		diffCommand,
-		statusCommand,
 	)
 
 	addCommandWithGroup("",
