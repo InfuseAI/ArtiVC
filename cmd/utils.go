@@ -38,6 +38,24 @@ func parseRepoStr(repoAndRef string) (repoUrl string, ref string, err error) {
 	return
 }
 
+func parseRepoName(repoUrl string) (string, error) {
+	url, err := neturl.Parse(repoUrl)
+	if err != nil {
+		return "", err
+	}
+
+	if url.Path == "" {
+		return url.Hostname(), nil
+	}
+
+	name := filepath.Base(url.Path)
+	if name == "/" {
+		return url.Hostname(), nil
+	}
+
+	return name, nil
+}
+
 func transformRepoUrl(base string, repo string) (string, error) {
 	url, err := neturl.Parse(repo)
 	if err != nil {
@@ -55,7 +73,7 @@ func transformRepoUrl(base string, repo string) (string, error) {
 	return filepath.Abs(filepath.Join(base, url.Path))
 }
 
-func IsDirEmpty(dir string) bool {
+func isDirEmpty(dir string) bool {
 	f, err := os.Open(dir)
 	if err != nil {
 		return false

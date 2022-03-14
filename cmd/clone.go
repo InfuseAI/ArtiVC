@@ -36,13 +36,13 @@ var cloneCommand = &cobra.Command{
 			return
 		}
 
-		err = repository.ValidateRepository(repo)
+		_, err = repository.NewRepository(repo)
 		if err != nil {
 			exitWithError(err)
 			return
 		}
 
-		destDir, err := repository.ParseRepositoryName(repo)
+		destDir, err := parseRepoName(repo)
 		if err != nil {
 			exitWithError(err)
 			return
@@ -54,7 +54,7 @@ var cloneCommand = &cobra.Command{
 
 		baseDir := filepath.Join(cwd, destDir)
 		err = os.Mkdir(baseDir, fs.ModePerm)
-		if err == nil || (os.IsExist(err) && IsDirEmpty(baseDir)) {
+		if err == nil || (os.IsExist(err) && isDirEmpty(baseDir)) {
 			// pass
 		} else if os.IsExist(err) {
 			exitWithError(fmt.Errorf("fatal: destination path '%s' already exists and is not an empty directory.", destDir))
