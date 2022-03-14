@@ -57,6 +57,7 @@ func init() {
 		listCommand,
 		logCommand,
 		diffCommand,
+		statusCommand,
 	)
 
 	addCommandWithGroup("",

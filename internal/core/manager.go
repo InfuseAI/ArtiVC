@@ -812,7 +812,7 @@ func (mngr *ArtifactManager) Diff(option DiffOptions) (DiffResult, error) {
 		entries[blob.Path] = entry
 	}
 
-	// Step 2: Compare left and right and create the changesets (added, delelete, changed)
+	// Step 2: Compare left and right and create the changesets (added, deleted, changed)
 	mapAdded := map[string][]DiffRecord{}
 	mapDeleted := map[string][]DiffRecord{}
 	mapChanged := map[string][]DiffRecord{}
@@ -916,6 +916,50 @@ func (mngr *ArtifactManager) Diff(option DiffOptions) (DiffResult, error) {
 	return DiffResult{
 		Records: records,
 	}, nil
+}
+
+func (mngr *ArtifactManager) Status() (DiffResult, error) {
+
+	// Make the remote latest commit
+	commitHash, err := mngr.FindCommitOrReference(RefLatest)
+	if err != nil {
+		commitHash, err = mngr.GetRef(RefLatest)
+		if err != nil {
+			return DiffResult{}, ErrEmptyRepository
+		}
+	}
+	commitRemote, err := mngr.GetCommit(commitHash)
+	if err != nil && err != ErrEmptyRepository {
+		return DiffResult{}, err
+	}
+
+	// Get the local commit hash
+	artIgnore := NewArtIgnore(mngr.baseDir)
+	artIgnoreFilter := func(path string) bool {
+		return !artIgnore.ShouldIgnore(path)
+	}
+	commitLocal, err := mngr.MakeWorkspaceCommit("", nil, artIgnoreFilter)
+	if err != nil {
+		if err != ErrWorkspaceNotFound {
+			return DiffResult{}, err
+		} else {
+			commitLocal = mngr.MakeEmptyCommit()
+		}
+	}
+
+	// Diff
+	result, err := mngr.Diff(DiffOptions{
+		LeftCommit:   commitRemote,
+		RightCommit:  commitLocal,
+		AddFilter:    artIgnoreFilter,
+		ChangeFilter: artIgnoreFilter,
+		DeleteFilter: artIgnoreFilter,
+	})
+	if err != nil {
+		return DiffResult{}, err
+	}
+
+	return result, nil
 }
 
 func (mngr *ArtifactManager) Log(refOrCommit string) error {
