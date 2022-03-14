@@ -1,10 +1,11 @@
 package repository
 
 import (
-	"github.com/infuseai/artiv/internal/meter"
 	"io/fs"
 	neturl "net/url"
 	"strings"
+
+	"github.com/infuseai/artiv/internal/meter"
 )
 
 type (

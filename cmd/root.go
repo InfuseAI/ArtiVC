@@ -49,6 +49,7 @@ func init() {
 
 	addCommandWithGroup(GROUP_BASIC,
 		initCommand,
+		cloneCommand,
 		configCommand,
 		pullCmd,
 		pushCmd,
