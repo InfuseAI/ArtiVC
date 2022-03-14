@@ -51,6 +51,7 @@ func init() {
 		initCommand,
 		cloneCommand,
 		configCommand,
+		statusCommand,
 		pullCmd,
 		pushCmd,
 		tagCommand,
