@@ -1,14 +1,11 @@
 ---
-title: Configuration
-weight: -10
+title: Ignore File
+weight: 2
 ---
 
-{{< toc >}}
-
-# Ignore file
 Just like git, you can put a `.artignore` file at the root of workspace to define the excluding list. The rule is a regular expression of path. Here is the example
 
-```
+```shell
 # Each line defines a regular expression rule
 
 # Ignore files
@@ -25,5 +22,4 @@ Just like git, you can put a `.artignore` file at the root of workspace to defin
 \.py$
 ````
 
-# S3 repository
-Prepare the `~/.aws/credentials` to access the s3 repository. Please see the [AWS documentation](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html)
+

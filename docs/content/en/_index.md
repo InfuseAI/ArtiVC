@@ -16,10 +16,9 @@ To store and share large files, we may use NFS or object storage (e.g. s3, MinIO
 
 {{< button size="large" relref="usage/getting-started/" >}}Getting Started{{< /button >}}
 
-## Feature overview
+## Feature Overview
 
 {{< columns >}}
-
 ### Use your own storage
 
 If you store data in NFS or S3, just use the storage you already use.
