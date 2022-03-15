@@ -1,0 +1,9 @@
+---
+header:
+  - name: GitHub
+    ref: https://github.com/InfuseAI/ArtiV
+    icon: gdoc_github
+    external: true
+  - name: Blogs
+    ref: posts
+    icon: gdoc_notification

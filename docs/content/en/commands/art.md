@@ -1,3 +1,7 @@
+---
+title: {.Name | lower | title}
+---
+
 ## art
 
 AritV is a version control system for large files

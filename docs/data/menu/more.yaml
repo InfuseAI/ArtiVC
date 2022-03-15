@@ -1,0 +1,13 @@
+---
+more:
+  - name: News
+    ref: "/posts"
+    icon: "gdoc_notification"
+  - name: Releases
+    ref: "https://github.com/infuseai/artiv/releases"
+    external: true
+    icon: "gdoc_download"
+  - name: View Source
+    ref: "https://github.com/infuseai/artiv"
+    external: true
+    icon: "gdoc_github"

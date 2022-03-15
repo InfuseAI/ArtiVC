@@ -23,6 +23,7 @@ go.work
 main
 .vscode
 bin
+.DS_Store
 
 .idea
 generated_docs
