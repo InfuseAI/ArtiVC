@@ -1,8 +1,8 @@
 ---
 description: >
   ArtiV (Artifact Versions) is a version control system for large files.
-# images:
-#   - "socialmedia2.png"
+images:
+  - "socialartiv.png"
 
 geekdocToC: 3
 geekdocTagsToMenu: true
