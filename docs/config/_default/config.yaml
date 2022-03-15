@@ -1,5 +1,5 @@
 ---
-baseURL: http://localhost/
+baseURL: https://artiv.netlify.app/
 title: ArtiV
 theme: hugo-geekdoc
 
