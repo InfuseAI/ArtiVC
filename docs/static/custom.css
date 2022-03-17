@@ -21,3 +21,7 @@
 .icon-grid__line--text {
   font-size: 0.8em;
 }
+
+img {
+  box-shadow: 0 4px 8px 0 rgb(0 0 0 / 20%), 0 6px 20px 0 rgb(0 0 0 / 19%);
+}

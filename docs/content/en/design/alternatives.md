@@ -1,5 +1,5 @@
 ---
-weight: 3
+weight: 4
 ---
 
 - **Object storage or NFS:**  Create folders or prefixes to add version semantics. It is straightforward to store different versions of data. But it lacks commit message, metadata, and history tracking. And we cannot know which one is the latest version.
