@@ -86,9 +86,8 @@ func (mngr *ArtifactManager) UploadBlob(localPath, hash string, checkSkip bool) 
 	return BlobUploadResult{Skip: false}, err
 }
 
-func (mngr *ArtifactManager) Download(repoPath, localPath string, meter *meter.Meter) error {
+func (mngr *ArtifactManager) Download(repoPath, localPath, tmpDir string, meter *meter.Meter) error {
 	// Copy from repo to tmp
-	tmpDir := path.Join(mngr.metadataDir, "tmp")
 	err := os.MkdirAll(tmpDir, fs.ModePerm)
 	if err != nil {
 		return err
@@ -135,7 +134,9 @@ func (mngr *ArtifactManager) DownloadBlob(localPath, hash string) (BlobDownloadR
 	}
 
 	repoPath := MakeObjectPath(hash)
-	err = mngr.Download(repoPath, blobPath, mngr.meter)
+	tmpDir := path.Join(mngr.baseDir, ".art", "tmp")
+
+	err = mngr.Download(repoPath, blobPath, tmpDir, mngr.meter)
 	if err != nil {
 		return BlobDownloadResult{}, err
 	}
@@ -201,7 +202,8 @@ func (mngr *ArtifactManager) GetRef(ref string) (string, error) {
 		return "", err
 	}
 
-	err = mngr.Download(refPath, localPath, nil)
+	tmpDir := path.Join(mngr.metadataDir, ".art", "tmp")
+	err = mngr.Download(refPath, localPath, tmpDir, nil)
 	if err != nil {
 		return "", err
 	}
@@ -230,7 +232,8 @@ func (mngr *ArtifactManager) GetCommit(hash string) (*Commit, error) {
 			return nil, err
 		}
 
-		err = mngr.Download(commitPath, localPath, nil)
+		tmpDir := path.Join(mngr.metadataDir, ".art", "tmp")
+		err = mngr.Download(commitPath, localPath, tmpDir, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -671,6 +674,10 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 		if err != nil {
 			return err
 		}
+	}
+	_, err = removeEmptyDirs(filepath.Join(mngr.baseDir, ".art"), true)
+	if err != nil {
+		return err
 	}
 
 	fmt.Println()
