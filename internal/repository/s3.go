@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
@@ -39,6 +38,8 @@ func NewS3Repository(bucket, basePath string) (*S3Repository, error) {
 }
 
 func (repo *S3Repository) Upload(localPath, repoPath string, m *meter.Meter) error {
+	// Reference the code to show the progress when uploading
+	// https://github.com/aws/aws-sdk-go/blob/main/example/service/s3/putObjectWithProcess/putObjWithProcess.go
 	sourceFileStat, err := os.Stat(localPath)
 	if err != nil {
 		return err
@@ -60,10 +61,9 @@ func (repo *S3Repository) Upload(localPath, repoPath string, m *meter.Meter) err
 	}
 
 	reader := &progressReader{
-		fp:      source,
-		size:    fileInfo.Size(),
-		signMap: map[int64]struct{}{},
-		meter:   m,
+		fp:    source,
+		size:  fileInfo.Size(),
+		meter: m,
 	}
 
 	key := filepath.Join(repo.BasePath, repoPath)
@@ -83,6 +83,8 @@ func (repo *S3Repository) Upload(localPath, repoPath string, m *meter.Meter) err
 }
 
 func (repo *S3Repository) Download(repoPath, localPath string, m *meter.Meter) error {
+	// Reference the code to show the progress when downloading
+	// https://github.com/aws/aws-sdk-go/tree/main/example/service/s3/getObjectWithProgress
 	key := filepath.Join(repo.BasePath, repoPath)
 	input := &s3.GetObjectInput{
 		Bucket: &repo.Bucket,
@@ -165,12 +167,9 @@ func (e *S3DirEntry) Info() (fs.FileInfo, error) {
 }
 
 type progressReader struct {
-	fp      *os.File
-	size    int64
-	read    int64
-	signMap map[int64]struct{}
-	mux     sync.Mutex
-	meter   *meter.Meter
+	fp    *os.File
+	size  int64
+	meter *meter.Meter
 }
 
 func (r *progressReader) Read(p []byte) (int, error) {
@@ -187,18 +186,10 @@ func (r *progressReader) ReadAt(p []byte, off int64) (int, error) {
 		return n, err
 	}
 
-	r.mux.Lock()
-	// Ignore the first signature call
-	if _, ok := r.signMap[off]; ok {
-		// Got the length have read( or means has uploaded), and you can construct your message
-		r.read += int64(n)
-		if r.meter != nil {
-			r.meter.AddBytes(n)
-		}
-	} else {
-		r.signMap[off] = struct{}{}
+	if r.meter != nil {
+		r.meter.AddBytes(n)
 	}
-	r.mux.Unlock()
+
 	return n, err
 }
 
@@ -212,8 +203,14 @@ type progressWriter struct {
 }
 
 func (w *progressWriter) WriteAt(p []byte, off int64) (int, error) {
-	if w.meter != nil {
-		w.meter.AddBytes(len(p))
+	n, err := w.writer.WriteAt(p, off)
+	if err != nil {
+		return n, err
 	}
-	return w.writer.WriteAt(p, off)
+
+	if w.meter != nil {
+		w.meter.AddBytes(n)
+	}
+
+	return n, err
 }
