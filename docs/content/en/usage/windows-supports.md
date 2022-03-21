@@ -32,7 +32,3 @@ $ tar zxvf ArtiV-v0.4.0-linux-arm64.tar.gz
 $ ./art version
 version.BuildInfo{"Version":"v0.4.0","GitCommit":"febfe3bc579d77130570ba7d12fcf404326b0f7d","GitTreeState":"clean","GoVersion":"go1.17.8"}
 ```
-
-### Code Snippet
-
-![](../images/windows-wsl-snippet.png)
