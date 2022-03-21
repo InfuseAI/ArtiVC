@@ -379,35 +379,38 @@ func (mngr *ArtifactManager) Push(options PushOptions) error {
 	uploaded := 0
 	skipped := 0
 
-	for _, record := range result.Records {
-		if record.Type == DiffTypeAdd || record.Type == DiffTypeChange {
-			total++
-		}
-	}
-
 	mngr.meter = meter.NewMeter()
 	tasks := []executor.TaskFunc{}
 	mtx := sync.Mutex{}
 
+	mapUploadBlob := map[string]string{}
 	for _, record := range result.Records {
 		if record.Type == DiffTypeAdd || record.Type == DiffTypeChange {
-			thisRecord := record
-			task := func(ctx context.Context) error {
-				uploadResult, err := mngr.UploadBlob(thisRecord.Path, thisRecord.Hash, checkSkip)
-				if err != nil {
-					return err
-				}
-
-				mtx.Lock()
-				uploaded++
-				if uploadResult.Skip {
-					skipped++
-				}
-				mtx.Unlock()
-				return nil
+			if _, ok := mapUploadBlob[record.Hash]; !ok {
+				mapUploadBlob[record.Hash] = record.Path
+				total++
 			}
-			tasks = append(tasks, task)
 		}
+	}
+
+	for hash, path := range mapUploadBlob {
+		h := hash
+		p := path
+		task := func(ctx context.Context) error {
+			uploadResult, err := mngr.UploadBlob(p, h, checkSkip)
+			if err != nil {
+				return err
+			}
+
+			mtx.Lock()
+			uploaded++
+			if uploadResult.Skip {
+				skipped++
+			}
+			mtx.Unlock()
+			return nil
+		}
+		tasks = append(tasks, task)
 	}
 
 	ticker := time.NewTicker(time.Millisecond * 100)
