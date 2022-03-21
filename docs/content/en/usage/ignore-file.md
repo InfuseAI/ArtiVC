@@ -3,13 +3,11 @@ title: Ignore File
 weight: 2
 ---
 
-Just like git, you can put a `.avcignore` file at the root of workspace to define the excluding list. The [rule](https://git-scm.com/docs/gitignore#_pattern_format) is the same as [`.gitignore`](https://git-scm.com/docs/gitignore#_pattern_format).
+Just like git, you can put a `.avcignore` file at the root of workspace to define the excluding list. The rule is the same as `.gitignore`. For more details, please check the [pattern format](https://git-scm.com/docs/gitignore#_pattern_format) in the git document.
 
 Here is the example:
 
 ```shell
-# Each line defines a regular expression rule
-
 # Ignore files
 test
 path/to/my/file
