@@ -38,7 +38,7 @@ func NewS3Repository(bucket, basePath string) (*S3Repository, error) {
 }
 
 func (repo *S3Repository) Upload(localPath, repoPath string, m *meter.Meter) error {
-	// Reference the code to show progress when upload
+	// Reference the code to show the progress when uploading
 	// https://github.com/aws/aws-sdk-go/blob/main/example/service/s3/putObjectWithProcess/putObjWithProcess.go
 	sourceFileStat, err := os.Stat(localPath)
 	if err != nil {
@@ -83,7 +83,8 @@ func (repo *S3Repository) Upload(localPath, repoPath string, m *meter.Meter) err
 }
 
 func (repo *S3Repository) Download(repoPath, localPath string, m *meter.Meter) error {
-	//
+	// Reference the code to show the progress when downloading
+	// https://github.com/aws/aws-sdk-go/tree/main/example/service/s3/getObjectWithProgress
 	key := filepath.Join(repo.BasePath, repoPath)
 	input := &s3.GetObjectInput{
 		Bucket: &repo.Bucket,
