@@ -76,12 +76,12 @@ func TestPushWithIgnore(t *testing.T) {
 	writeFile([]byte("b"), filepath.Join(wp1, "b"))
 	writeFile([]byte("c"), filepath.Join(wp1, "c"))
 
-	artIgnore := `
-^a$
-^e$
+	avcIgnore := `
+a
+e
 `
 
-	writeFile([]byte(artIgnore), filepath.Join(wp1, ".artignore"))
+	writeFile([]byte(avcIgnore), filepath.Join(wp1, ".avcignore"))
 
 	InitWorkspace(wp1, repo)
 	config, _ := LoadConfig(wp1)
@@ -119,11 +119,11 @@ func TestPullWithIgnore(t *testing.T) {
 	assert.Empty(t, err)
 
 	// pull
-	artIgnore := `
-^a$
-^e$
+	avcIgnore := `
+a
+e
 `
-	writeFile([]byte(artIgnore), filepath.Join(wp2, ".artignore"))
+	writeFile([]byte(avcIgnore), filepath.Join(wp2, ".avcignore"))
 	writeFile([]byte("abc"), filepath.Join(wp2, "a"))
 	writeFile([]byte("efg"), filepath.Join(wp2, "e"))
 	InitWorkspace(wp2, repo)

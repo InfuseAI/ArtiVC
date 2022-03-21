@@ -335,12 +335,22 @@ func (mngr *ArtifactManager) Push(options PushOptions) error {
 		parent = ""
 	}
 	checkSkip := true
-	artIgnore := NewArtIgnore(mngr.baseDir)
-	artIgnoreFilter := func(path string) bool {
-		return !artIgnore.ShouldIgnore(path)
+	avcIgnore, err := NewAvcIgnore(mngr.baseDir)
+	avcIgnoreFilter := func(path string) bool {
+		return true
 	}
 
-	commit, err := mngr.MakeWorkspaceCommit(parent, options.Message, artIgnoreFilter)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+	} else {
+		avcIgnoreFilter = func(path string) bool {
+			return !avcIgnore.MatchesPath(path)
+		}
+	}
+
+	commit, err := mngr.MakeWorkspaceCommit(parent, options.Message, avcIgnoreFilter)
 	if err != nil {
 		return err
 	}
@@ -348,8 +358,8 @@ func (mngr *ArtifactManager) Push(options PushOptions) error {
 	result, err := mngr.Diff(DiffOptions{
 		LeftRef:      RefLatest,
 		RightCommit:  commit,
-		AddFilter:    artIgnoreFilter,
-		ChangeFilter: artIgnoreFilter,
+		AddFilter:    avcIgnoreFilter,
+		ChangeFilter: avcIgnoreFilter,
 		DeleteFilter: nil,
 	})
 	if err != nil {
@@ -360,8 +370,8 @@ func (mngr *ArtifactManager) Push(options PushOptions) error {
 			result, err = mngr.Diff(DiffOptions{
 				LeftCommit:   mngr.MakeEmptyCommit(),
 				RightCommit:  commit,
-				AddFilter:    artIgnoreFilter,
-				ChangeFilter: artIgnoreFilter,
+				AddFilter:    avcIgnoreFilter,
+				ChangeFilter: avcIgnoreFilter,
 				DeleteFilter: nil,
 			})
 			if err != nil {
@@ -575,11 +585,21 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 	}
 
 	// Get the local commit hash
-	artIgnore := NewArtIgnore(mngr.baseDir)
-	artIgnoreFilter := func(path string) bool {
-		return !artIgnore.ShouldIgnore(path)
+	avcIgnore, err := NewAvcIgnore(mngr.baseDir)
+	avcIgnoreFilter := func(path string) bool {
+		return true
 	}
-	commitLocal, err := mngr.MakeWorkspaceCommit("", nil, artIgnoreFilter)
+
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+	} else {
+		avcIgnoreFilter = func(path string) bool {
+			return !avcIgnore.MatchesPath(path)
+		}
+	}
+	commitLocal, err := mngr.MakeWorkspaceCommit("", nil, avcIgnoreFilter)
 	if err != nil {
 		if err != ErrWorkspaceNotFound {
 			return err
@@ -593,9 +613,9 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 		NoDelete:     !options.Delete,
 		LeftCommit:   commitLocal,
 		RightCommit:  commitRemote,
-		AddFilter:    artIgnoreFilter,
-		ChangeFilter: artIgnoreFilter,
-		DeleteFilter: artIgnoreFilter,
+		AddFilter:    avcIgnoreFilter,
+		ChangeFilter: avcIgnoreFilter,
+		DeleteFilter: avcIgnoreFilter,
 	})
 	if err != nil {
 		return err
@@ -944,11 +964,22 @@ func (mngr *ArtifactManager) Status() (DiffResult, error) {
 	}
 
 	// Get the local commit hash
-	artIgnore := NewArtIgnore(mngr.baseDir)
-	artIgnoreFilter := func(path string) bool {
-		return !artIgnore.ShouldIgnore(path)
+	avcIgnore, err := NewAvcIgnore(mngr.baseDir)
+	avcIgnoreFilter := func(path string) bool {
+		return true
 	}
-	commitLocal, err := mngr.MakeWorkspaceCommit("", nil, artIgnoreFilter)
+
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return DiffResult{}, err
+		}
+	} else {
+		avcIgnoreFilter = func(path string) bool {
+			return !avcIgnore.MatchesPath(path)
+		}
+	}
+
+	commitLocal, err := mngr.MakeWorkspaceCommit("", nil, avcIgnoreFilter)
 	if err != nil {
 		if err != ErrWorkspaceNotFound {
 			return DiffResult{}, err
@@ -961,9 +992,9 @@ func (mngr *ArtifactManager) Status() (DiffResult, error) {
 	result, err := mngr.Diff(DiffOptions{
 		LeftCommit:   commitRemote,
 		RightCommit:  commitLocal,
-		AddFilter:    artIgnoreFilter,
-		ChangeFilter: artIgnoreFilter,
-		DeleteFilter: artIgnoreFilter,
+		AddFilter:    avcIgnoreFilter,
+		ChangeFilter: avcIgnoreFilter,
+		DeleteFilter: avcIgnoreFilter,
 	})
 	if err != nil {
 		return DiffResult{}, err
