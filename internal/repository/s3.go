@@ -12,7 +12,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/infuseai/artiv/internal/meter"
 )
 
 type S3Repository struct {
@@ -37,7 +36,7 @@ func NewS3Repository(bucket, basePath string) (*S3Repository, error) {
 	}, nil
 }
 
-func (repo *S3Repository) Upload(localPath, repoPath string, m *meter.Meter) error {
+func (repo *S3Repository) Upload(localPath, repoPath string, m *Meter) error {
 	// Reference the code to show the progress when uploading
 	// https://github.com/aws/aws-sdk-go/blob/main/example/service/s3/putObjectWithProcess/putObjWithProcess.go
 	sourceFileStat, err := os.Stat(localPath)
@@ -82,7 +81,7 @@ func (repo *S3Repository) Upload(localPath, repoPath string, m *meter.Meter) err
 	return err
 }
 
-func (repo *S3Repository) Download(repoPath, localPath string, m *meter.Meter) error {
+func (repo *S3Repository) Download(repoPath, localPath string, m *Meter) error {
 	// Reference the code to show the progress when downloading
 	// https://github.com/aws/aws-sdk-go/tree/main/example/service/s3/getObjectWithProgress
 	key := filepath.Join(repo.BasePath, repoPath)
@@ -169,7 +168,7 @@ func (e *S3DirEntry) Info() (fs.FileInfo, error) {
 type progressReader struct {
 	fp    *os.File
 	size  int64
-	meter *meter.Meter
+	meter *Meter
 }
 
 func (r *progressReader) Read(p []byte) (int, error) {
@@ -199,7 +198,7 @@ func (r *progressReader) Seek(offset int64, whence int) (int64, error) {
 
 type progressWriter struct {
 	writer io.WriterAt
-	meter  *meter.Meter
+	meter  *Meter
 }
 
 func (w *progressWriter) WriteAt(p []byte, off int64) (int, error) {

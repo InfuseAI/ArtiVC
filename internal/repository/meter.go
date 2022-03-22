@@ -1,4 +1,4 @@
-package meter
+package repository
 
 import (
 	"fmt"
@@ -43,9 +43,40 @@ func (b ByteSize) String() string {
 	return fmt.Sprintf("%.2fB", b)
 }
 
-type Meter struct {
+type Session struct {
 	startedAt time.Time
-	total     uint64
+	meters    []*Meter
+}
+
+func NewSession() *Session {
+	return &Session{
+		startedAt: time.Now(),
+		meters:    []*Meter{},
+	}
+}
+
+func (s *Session) NewMeter() *Meter {
+
+	meter := &Meter{
+		total: 0,
+	}
+	s.meters = append(s.meters, meter)
+	return meter
+}
+
+func (s *Session) CalculateSpeed() ByteSize {
+	totalDiff := time.Now().Sub(s.startedAt).Seconds()
+	var total int64
+	for _, meter := range s.meters {
+		total = total + meter.total
+	}
+
+	speed := float64(total) / totalDiff
+	return ByteSize(speed)
+}
+
+type Meter struct {
+	total int64
 }
 
 func (m *Meter) Write(p []byte) (n int, err error) {
@@ -54,21 +85,12 @@ func (m *Meter) Write(p []byte) (n int, err error) {
 	return written, nil
 }
 
-func NewMeter() *Meter {
-	return &Meter{
-		startedAt: time.Now(),
-		total:     0,
-	}
-}
-
 func (m *Meter) AddBytes(bytes int) {
-	atomic.AddUint64(&m.total, uint64(bytes))
+	atomic.AddInt64(&m.total, int64(bytes))
 }
 
-func (m *Meter) CalculateSpeed() ByteSize {
-	totalDiff := time.Now().Sub(m.startedAt).Seconds()
-	speed := float64(m.total) / totalDiff
-	return ByteSize(speed)
+func (m *Meter) SetBytes(bytes int64) {
+	atomic.StoreInt64(&m.total, bytes)
 }
 
 func CopyWithMeter(dest io.Writer, src io.Reader, meter *Meter) (int64, error) {

@@ -3,14 +3,11 @@ package repository
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"time"
-
-	"github.com/infuseai/artiv/internal/meter"
 )
 
 // Local Filesystem
@@ -32,7 +29,7 @@ func NewRcloneRepository(remote, basePath string) (*RcloneRepository, error) {
 	}, nil
 }
 
-func (repo *RcloneRepository) Upload(localPath, repoPath string, m *meter.Meter) error {
+func (repo *RcloneRepository) Upload(localPath, repoPath string, m *Meter) error {
 	cmd := exec.Command("rclone", "copyto", "--no-check-dest", localPath, repo.remotePath(repoPath))
 	err := cmd.Run()
 	if err != nil {
@@ -42,7 +39,7 @@ func (repo *RcloneRepository) Upload(localPath, repoPath string, m *meter.Meter)
 	return nil
 }
 
-func (repo *RcloneRepository) Download(repoPath, localPath string, m *meter.Meter) error {
+func (repo *RcloneRepository) Download(repoPath, localPath string, m *Meter) error {
 	cmd := exec.Command("rclone", "copyto", "--no-check-dest", repo.remotePath(repoPath), localPath)
 	err := cmd.Run()
 	if err != nil {
@@ -77,7 +74,6 @@ func (repo *RcloneRepository) Stat(repoPath string) (FileInfo, error) {
 
 	var size RcloneSize
 	json.Unmarshal(out.Bytes(), &size)
-	fmt.Printf("%+v\n", size)
 
 	if size.Count == 0 {
 		return nil, os.ErrNotExist
