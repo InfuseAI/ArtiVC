@@ -4,8 +4,6 @@ import (
 	"io/fs"
 	neturl "net/url"
 	"strings"
-
-	"github.com/infuseai/artiv/internal/meter"
 )
 
 type (
@@ -14,8 +12,8 @@ type (
 )
 
 type Repository interface {
-	Upload(localPath, repoPath string, meter *meter.Meter) error
-	Download(repoPath, localPath string, meter *meter.Meter) error
+	Upload(localPath, repoPath string, meter *Meter) error
+	Download(repoPath, localPath string, meter *Meter) error
 	Delete(repoPath string) error
 	Stat(repoPath string) (FileInfo, error)
 	List(repoPath string) ([]ListEntry, error)
@@ -42,6 +40,8 @@ func NewRepository(repo string) (Repository, error) {
 		return NewLocalFileSystemRepository(url.Path)
 	case "s3":
 		return NewS3Repository(url.Host, url.Path)
+	case "rclone":
+		return NewRcloneRepository(url.Host, url.Path)
 	case "http", "https":
 		return NewHttpRepository(repo)
 	default:

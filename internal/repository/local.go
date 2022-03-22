@@ -7,8 +7,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-
-	"github.com/infuseai/artiv/internal/meter"
 )
 
 // Local Filesystem
@@ -38,7 +36,7 @@ func NewLocalFileSystemRepository(repoDir string) (*LocalFileSystemRepository, e
 	}, nil
 }
 
-func (repo *LocalFileSystemRepository) Upload(localPath, repoPath string, m *meter.Meter) error {
+func (repo *LocalFileSystemRepository) Upload(localPath, repoPath string, m *Meter) error {
 	sourceFileStat, err := os.Stat(localPath)
 	if err != nil {
 		return err
@@ -67,7 +65,7 @@ func (repo *LocalFileSystemRepository) Upload(localPath, repoPath string, m *met
 	}
 	tmpPath := tmp.Name()
 	defer os.Remove(tmpPath)
-	_, err = meter.CopyWithMeter(tmp, source, m)
+	_, err = CopyWithMeter(tmp, source, m)
 	if err != nil {
 		return err
 	}
@@ -95,7 +93,7 @@ func (repo *LocalFileSystemRepository) Upload(localPath, repoPath string, m *met
 	return nil
 }
 
-func (repo *LocalFileSystemRepository) Download(repoPath, localPath string, m *meter.Meter) error {
+func (repo *LocalFileSystemRepository) Download(repoPath, localPath string, m *Meter) error {
 	srcPath := path.Join(repo.RepoDir, repoPath)
 	src, err := os.Open(srcPath)
 	if err != nil {
@@ -108,7 +106,7 @@ func (repo *LocalFileSystemRepository) Download(repoPath, localPath string, m *m
 		return err
 	}
 	defer dest.Close()
-	written, err := meter.CopyWithMeter(dest, src, m)
+	written, err := CopyWithMeter(dest, src, m)
 	if err != nil {
 		return err
 	}

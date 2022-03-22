@@ -15,8 +15,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/infuseai/artiv/internal/meter"
-
 	"github.com/fatih/color"
 	"github.com/infuseai/artiv/internal/executor"
 	"github.com/infuseai/artiv/internal/repository"
@@ -33,9 +31,6 @@ type ArtifactManager struct {
 
 	// repository
 	repo repository.Repository
-
-	// meter
-	meter *meter.Meter
 }
 
 func NewArtifactManager(config ArtConfig) (*ArtifactManager, error) {
@@ -71,7 +66,7 @@ func NewArtifactManager(config ArtConfig) (*ArtifactManager, error) {
 	return &ArtifactManager{baseDir: baseDir, repo: repo, metadataDir: metadataDir}, nil
 }
 
-func (mngr *ArtifactManager) UploadBlob(localPath, hash string, checkSkip bool) (BlobUploadResult, error) {
+func (mngr *ArtifactManager) UploadBlob(localPath, hash string, meter *repository.Meter, checkSkip bool) (BlobUploadResult, error) {
 	repoPath := MakeObjectPath(hash)
 
 	if checkSkip {
@@ -82,11 +77,11 @@ func (mngr *ArtifactManager) UploadBlob(localPath, hash string, checkSkip bool) 
 	}
 
 	blobPath := filepath.Join(mngr.baseDir, localPath)
-	err := mngr.repo.Upload(blobPath, repoPath, mngr.meter)
+	err := mngr.repo.Upload(blobPath, repoPath, meter)
 	return BlobUploadResult{Skip: false}, err
 }
 
-func (mngr *ArtifactManager) Download(repoPath, localPath, tmpDir string, meter *meter.Meter) error {
+func (mngr *ArtifactManager) Download(repoPath, localPath, tmpDir string, meter *repository.Meter) error {
 	// Copy from repo to tmp
 	err := os.MkdirAll(tmpDir, fs.ModePerm)
 	if err != nil {
@@ -102,7 +97,7 @@ func (mngr *ArtifactManager) Download(repoPath, localPath, tmpDir string, meter 
 	tmpPath := tmp.Name()
 	defer os.Remove(tmpPath)
 
-	err = mngr.repo.Download(repoPath, tmpPath, mngr.meter)
+	err = mngr.repo.Download(repoPath, tmpPath, meter)
 	if err != nil {
 		return err
 	}
@@ -125,7 +120,7 @@ func (mngr *ArtifactManager) Download(repoPath, localPath, tmpDir string, meter 
 	return nil
 }
 
-func (mngr *ArtifactManager) DownloadBlob(localPath, hash string) (BlobDownloadResult, error) {
+func (mngr *ArtifactManager) DownloadBlob(localPath, hash string, meter *repository.Meter) (BlobDownloadResult, error) {
 	blobPath := filepath.Join(mngr.baseDir, localPath)
 
 	err := mkdirsForFile(blobPath)
@@ -136,7 +131,7 @@ func (mngr *ArtifactManager) DownloadBlob(localPath, hash string) (BlobDownloadR
 	repoPath := MakeObjectPath(hash)
 	tmpDir := path.Join(mngr.baseDir, ".art", "tmp")
 
-	err = mngr.Download(repoPath, blobPath, tmpDir, mngr.meter)
+	err = mngr.Download(repoPath, blobPath, tmpDir, meter)
 	if err != nil {
 		return BlobDownloadResult{}, err
 	}
@@ -389,29 +384,34 @@ func (mngr *ArtifactManager) Push(options PushOptions) error {
 	uploaded := 0
 	skipped := 0
 
-	mngr.meter = meter.NewMeter()
+	session := repository.NewSession()
 	tasks := []executor.TaskFunc{}
 	mtx := sync.Mutex{}
 
-	mapUploadBlob := map[string]string{}
+	mapUploadBlob := map[string]DiffRecord{}
 	for _, record := range result.Records {
 		if record.Type == DiffTypeAdd || record.Type == DiffTypeChange {
 			if _, ok := mapUploadBlob[record.Hash]; !ok {
-				mapUploadBlob[record.Hash] = record.Path
+				mapUploadBlob[record.Hash] = record
 				total++
 			}
 		}
 	}
 
-	for hash, path := range mapUploadBlob {
+	for hash, record := range mapUploadBlob {
 		h := hash
-		p := path
+		p := record.Path
+		s := record.Size
+
+		meter := session.NewMeter()
+
 		task := func(ctx context.Context) error {
-			uploadResult, err := mngr.UploadBlob(p, h, checkSkip)
+			uploadResult, err := mngr.UploadBlob(p, h, meter, checkSkip)
 			if err != nil {
 				return err
 			}
 
+			meter.SetBytes(s)
 			mtx.Lock()
 			uploaded++
 			if uploadResult.Skip {
@@ -439,10 +439,9 @@ func (mngr *ArtifactManager) Push(options PushOptions) error {
 			stop = true
 		case <-ticker.C:
 		}
-		fmt.Printf("upload objects: (%d/%d), skipped: %d, speed: %5v/s    \r", uploaded, total, skipped, mngr.meter.CalculateSpeed())
+		fmt.Printf("upload objects: (%d/%d), skipped: %d, speed: %5v/s    \r", uploaded, total, skipped, session.CalculateSpeed())
 	}
 
-	mngr.meter = nil
 	if err != nil {
 		return err
 	}
@@ -635,23 +634,28 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 		}
 	}
 
-	mngr.meter = meter.NewMeter()
+	session := repository.NewSession()
 	tasks := []executor.TaskFunc{}
 	mtx := sync.Mutex{}
 	for _, record := range result.Records {
+		p := record.Path
+		h := record.Hash
+		s := record.Size
+
 		theRecord := record
+		meter := session.NewMeter()
 
 		task := func(ctx context.Context) error {
 			switch theRecord.Type {
 			case DiffTypeAdd, DiffTypeChange:
-				_, err := mngr.DownloadBlob(theRecord.Path, theRecord.Hash)
+				_, err := mngr.DownloadBlob(p, h, meter)
 				if err != nil {
 					return err
 				}
 				mtx.Lock()
 				downloaded++
 				mtx.Unlock()
-
+				meter.SetBytes(s)
 			case DiffTypeDelete:
 				err := deleteFile(theRecord.Path)
 				if err != nil {
@@ -684,9 +688,8 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 			stop = true
 		case <-ticker.C:
 		}
-		fmt.Printf("download objects: (%d/%d), speed: %5v/s    \r", downloaded, total, mngr.meter.CalculateSpeed())
+		fmt.Printf("download objects: (%d/%d), speed: %5v/s    \r", downloaded, total, session.CalculateSpeed())
 	}
-	mngr.meter = nil
 
 	if err != nil {
 		return err
@@ -863,7 +866,7 @@ func (mngr *ArtifactManager) Diff(option DiffOptions) (DiffResult, error) {
 				}
 			}
 
-			record := DiffRecord{Type: DiffTypeAdd, Path: entry.right.Path, Hash: entry.right.Hash}
+			record := DiffRecord{Type: DiffTypeAdd, Path: path, Hash: entry.right.Hash, Size: entry.right.Size}
 			mapAdded[entry.right.Hash] = appendOrMake(mapAdded[entry.right.Hash], record)
 		} else if entry.left != nil && entry.right == nil {
 			if option.NoDelete {
@@ -876,7 +879,7 @@ func (mngr *ArtifactManager) Diff(option DiffOptions) (DiffResult, error) {
 				}
 			}
 
-			record := DiffRecord{Type: DiffTypeDelete, Path: entry.left.Path, Hash: entry.left.Hash}
+			record := DiffRecord{Type: DiffTypeDelete, Path: path, Hash: entry.left.Hash, Size: entry.left.Size}
 			mapDeleted[entry.left.Hash] = appendOrMake(mapDeleted[entry.left.Hash], record)
 		} else if entry.left.Hash != entry.right.Hash {
 			if option.ChangeFilter != nil {
@@ -885,7 +888,14 @@ func (mngr *ArtifactManager) Diff(option DiffOptions) (DiffResult, error) {
 				}
 			}
 
-			record := DiffRecord{Type: DiffTypeChange, Path: entry.left.Path, Hash: entry.right.Hash, OldHash: entry.left.Hash}
+			record := DiffRecord{
+				Type:    DiffTypeChange,
+				Path:    path,
+				Hash:    entry.right.Hash,
+				Size:    entry.right.Size,
+				OldHash: entry.left.Hash,
+				OldSize: entry.left.Size,
+			}
 			mapChanged[entry.left.Hash] = appendOrMake(mapChanged[entry.left.Hash], record)
 		}
 	}

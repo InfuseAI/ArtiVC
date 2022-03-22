@@ -68,8 +68,10 @@ type DiffRecord struct {
 	Type    DiffType
 	Hash    string
 	Path    string
+	Size    int64
 	OldPath string
 	OldHash string
+	OldSize int64
 }
 
 type DiffResult struct {

@@ -9,7 +9,11 @@ geekdocAnchor: false
 {{< columns >}}
 ### ArtiV (Artifact Versions) is a version control system for large files.
 
-To store and share large files, we may use NFS or object storage (e.g. s3, MinIO). However, if we would like to do versioning on top of them, it is not a trivial thing. ArtiV is a CLI tool to enable you to version files on your storage without pain. You don't need to install any additional server or gateway and we turn your storage into the versioned repository.
+
+**rsync** is an ssh-based tool that provides fast incremental file transfer.<br>
+**Rclone** is a rsync-like tool for cloud storage.<br>
+**ArtiV** is like Git for files versioning and like Rclone for cloud storage.
+
 <--->
 [![asciicast](https://asciinema.org/a/XP7AWyrCszebm1KuF3PcYfnRK.svg)](https://asciinema.org/a/XP7AWyrCszebm1KuF3PcYfnRK?autoplay=1)
 {{< /columns >}}
@@ -19,44 +23,41 @@ To store and share large files, we may use NFS or object storage (e.g. s3, MinIO
 ## Feature Overview
 
 {{< columns >}}
+### Data Versioning
+
+Version your data like versioning code. ArtiV supports commmit history, commit message, version tag. You can diff two commits, pull data from speciifc version.
+
+<--->
+
 ### Use your own storage
 
-If you store data in NFS or S3, just use the storage you already use.
+We are used to putting large files in NFS or S3. To use ArtiV, you can keep put your files on the same storage without changes.
 
 <--->
 
 ### No additional server required
 
-ArtiV is a CLI tool. No server or gateway is required to install or operate.
-
-
-
-<--->
-
-### Multiple backend support
-
-Currently, we support local, NFS (by local repo), and s3. And more in the future
+ArtiV is a CLI tool. No server or gateway is required to install and operate.
 
 {{< /columns >}}
 
 {{< columns >}}
 
-### Reproducible
+### Multiple backend support
 
-A commit is stored in a single file and cannot be changed. There is no way to add/remove/modify a single file in a commit.
-
-<--->
-
-### Expose your data publicly
-
-Expose your repository with a public HTTP endpoint, then you can download your data in this way
-
-
+ArtiV natively supports local filesystem, s3 as backend. And 40+ backends supported through [Rclone](repositories/rclone/) integration. [Learn more](repositories/local/)
 
 <--->
 
-### Smart storage and transfer
+### Expose your data to public
 
-For the same content of files, there is only one instance stored in the artifact repository. If a file has been uploaded by other commits, no upload is required because we know the file is already there in the repository. Under the hood, we use [content-addressable storage](https://en.wikipedia.org/wiki/Content-addressable_storage) to put the objects.
+To serve a repository as a public HTTP endpoint, the repository turn to a http repository right away. Then the data consumer can download your data with an one-line command. [Learn more](use-cases/expose/)
+
+<--->
+
+### Efficient storage and transfer
+
+The file structure of repository is storage and transfer effiecntly by [design](design/how-it-works/). It prevent from storing duplicated content and minimum the round-trip time to determine change set to transfer. [Learn more](design/benchmark/)
+
 
 {{< /columns >}}
