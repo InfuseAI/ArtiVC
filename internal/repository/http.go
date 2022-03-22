@@ -38,7 +38,18 @@ func (repo *HttpRepository) Download(repoPath, localPath string, m *Meter) error
 
 	res, err := http.Get(filePath)
 	if err != nil {
-		return err
+		retry := 0
+		msg := err.Error()
+
+		for err != nil && strings.HasSuffix(msg, "connection reset by peer") && retry < 10 {
+			retry++
+			time.Sleep(time.Millisecond * 50 * time.Duration(retry))
+			res, err = http.Get(filePath)
+		}
+
+		if err != nil {
+			return err
+		}
 	}
 	defer res.Body.Close()
 
