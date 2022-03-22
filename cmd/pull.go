@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"errors"
+
 	"github.com/infuseai/artiv/internal/core"
 	"github.com/spf13/cobra"
 )
@@ -13,8 +15,11 @@ var pullCmd = &cobra.Command{
   art pull
 
   # Pull from a specifc version
-  art pull v1.0.0`,
-	Args: cobra.RangeArgs(0, 1),
+  art pull v1.0.0
+
+  # Pull partial files
+  art pull -- path/to/partia
+  art pull v0.1.0 -- path/to/partia ...`,
 	Run: func(cmd *cobra.Command, args []string) {
 		config, err := core.LoadConfig("")
 		if err != nil {
@@ -30,9 +35,6 @@ var pullCmd = &cobra.Command{
 
 		// options
 		option := core.PullOptions{}
-		if len(args) > 0 {
-			option.RefOrCommit = &args[0]
-		}
 
 		option.DryRun, err = cmd.Flags().GetBool("dry-run")
 		if err != nil {
@@ -42,6 +44,30 @@ var pullCmd = &cobra.Command{
 		option.Delete, err = cmd.Flags().GetBool("delete")
 		if err != nil {
 			exitWithError(err)
+		}
+
+		argsLenBeforeDash := cmd.Flags().ArgsLenAtDash()
+		if argsLenBeforeDash == -1 {
+			if len(args) == 1 {
+				option.RefOrCommit = &args[0]
+			} else if len(args) > 1 {
+				exitWithError(errors.New("please specify \"--\" flag teminator"))
+			}
+		} else {
+			if argsLenBeforeDash == 1 {
+				option.RefOrCommit = &args[0]
+			}
+
+			if len(args)-argsLenBeforeDash > 0 {
+				if option.Delete {
+					exitWithError(errors.New("cannot pull partial files and specify delete flag at the same time"))
+				}
+
+				fileInclude := core.NewAvcInclude(args[argsLenBeforeDash:])
+				option.FileFilter = func(path string) bool {
+					return fileInclude.MatchesPath(path)
+				}
+			}
 		}
 
 		err = mngr.Pull(option)
