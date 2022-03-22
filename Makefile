@@ -22,3 +22,6 @@ build:
 
 test:
 	go test ./...
+
+doc-server:
+	make -C docs/ start
