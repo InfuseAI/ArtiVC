@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -21,12 +22,19 @@ var getCmd = &cobra.Command{
   art get s3://mybucket/path/to/mydataset@v1.0.0
   
   # Download to a specific folder
-  art get -o /tmp/mydataset s3://bucket/mydataset`,
-	Args: cobra.ExactArgs(1),
+  art get -o /tmp/mydataset s3://bucket/mydataset
+
+  # Download partial files
+  art get -o /tmp/mydataset s3://bucket/mydataset -- path/to/file1 path/to/file2 data/`,
+	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
 
 		repoUrl, ref, err := parseRepoStr(args[0])
+		if err != nil {
+			exitWithError(err)
+			return
+		}
 		baseDir, err := cmd.Flags().GetString("output")
 		if err != nil {
 			exitWithError(err)
@@ -66,6 +74,16 @@ var getCmd = &cobra.Command{
 		options.Delete, err = cmd.Flags().GetBool("delete")
 		if err != nil {
 			exitWithError(err)
+		}
+
+		if len(args) > 1 {
+			if options.Delete {
+				exitWithError(errors.New("cannot download partial files and specify delete flag at the same time"))
+			}
+			fileInclude := core.NewAvcInclude(args[1:])
+			options.FileFilter = func(path string) bool {
+				return fileInclude.MatchesPath(path)
+			}
 		}
 
 		err = mngr.Pull(options)

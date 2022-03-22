@@ -213,3 +213,11 @@ func NewAvcIgnore(dir string) (*AvcIgnore, error) {
 
 	return avcIgnore, nil
 }
+
+type AvcInclude = gitignore.GitIgnore
+
+func NewAvcInclude(filePath []string) *AvcInclude {
+	filter := gitignore.CompileIgnoreLines(filePath...)
+
+	return filter
+}
