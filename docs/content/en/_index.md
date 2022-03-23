@@ -7,12 +7,12 @@ geekdocAnchor: false
 ---
 
 {{< columns >}}
-### ArtiV (Artifact Versions) is a version control system for large files.
+### ArtiVC (Artifact Version Control) is a version control system for large files.
 
 
 **rsync** is an ssh-based tool that provides fast incremental file transfer.<br>
 **Rclone** is a rsync-like tool for cloud storage.<br>
-**ArtiV** is like Git for files versioning and like Rclone for cloud storage.
+**ArtiVC** is like Git for files versioning and like Rclone for cloud storage.
 
 <--->
 [![asciicast](https://asciinema.org/a/XP7AWyrCszebm1KuF3PcYfnRK.svg)](https://asciinema.org/a/XP7AWyrCszebm1KuF3PcYfnRK?autoplay=1)
@@ -25,19 +25,19 @@ geekdocAnchor: false
 {{< columns >}}
 ### Data Versioning
 
-Version your data like versioning code. ArtiV supports commmit history, commit message, version tag. You can diff two commits, pull data from speciifc version.
+Version your data like versioning code. ArtiVC supports commmit history, commit message, version tag. You can diff two commits, pull data from speciifc version.
 
 <--->
 
 ### Use your own storage
 
-We are used to putting large files in NFS or S3. To use ArtiV, you can keep put your files on the same storage without changes.
+We are used to putting large files in NFS or S3. To use ArtiVC, you can keep put your files on the same storage without changes.
 
 <--->
 
 ### No additional server required
 
-ArtiV is a CLI tool. No server or gateway is required to install and operate.
+ArtiVC is a CLI tool. No server or gateway is required to install and operate.
 
 {{< /columns >}}
 
@@ -45,7 +45,7 @@ ArtiV is a CLI tool. No server or gateway is required to install and operate.
 
 ### Multiple backend support
 
-ArtiV natively supports local filesystem, s3 as backend. And 40+ backends supported through [Rclone](repositories/rclone/) integration. [Learn more](repositories/local/)
+ArtiVC natively supports local filesystem, s3 as backend. And 40+ backends supported through [Rclone](repositories/rclone/) integration. [Learn more](repositories/local/)
 
 <--->
 

@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/infuseai/artiv/internal/core"
+	"github.com/infuseai/artivc/internal/core"
 	"github.com/spf13/cobra"
 )
 
@@ -12,7 +12,7 @@ var statusCommand = &cobra.Command{
 	Short:                 "Show the status of the workspace",
 	DisableFlagsInUseLine: true,
 	Example: `	# check current status
-	art status`,
+	avc status`,
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		config, err := core.LoadConfig("")

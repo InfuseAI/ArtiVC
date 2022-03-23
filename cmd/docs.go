@@ -14,7 +14,7 @@ var docsCommand = &cobra.Command{
 	Short: "Generate docs",
 	Long: `Generate docs. For example:
 
-art docs`,
+avc docs`,
 	Run: func(cmd *cobra.Command, args []string) {
 		const DocDir = "./generated_docs"
 		err := os.Mkdir(DocDir, fs.ModePerm)

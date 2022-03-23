@@ -8,25 +8,25 @@ import (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "art",
-	Short: "AritV is a version control system for large files",
+	Use:   "avc",
+	Short: "ArtiVC is a version control system for large files",
 	Example: `  # Push data to the repository
   cd /path/to/my/data
-  art init s3://mybucket/path/to/repo
-  art push -m "my first commit"
+  avc init s3://mybucket/path/to/repo
+  avc push -m "my first commit"
 
   # Pull data from the repository
   cd /path/to/download
-  art init s3://mybucket/path/to/repo
-  art pull
+  avc init s3://mybucket/path/to/repo
+  avc pull
 
   # Download by quick command
-  art get -o /path/to/download s3://mybucket/path/to/repo
+  avc get -o /path/to/download s3://mybucket/path/to/repo
 
   # Show command help
-  art <command> -h
+  avc <command> -h
 
-  For more information, please check https://github.com/infuseai/artiv`,
+  For more information, please check https://github.com/infuseai/artivc`,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

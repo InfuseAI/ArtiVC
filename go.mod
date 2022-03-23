@@ -1,4 +1,4 @@
-module github.com/infuseai/artiv
+module github.com/infuseai/artivc
 
 go 1.17
 

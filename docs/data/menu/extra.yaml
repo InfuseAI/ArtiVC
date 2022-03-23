@@ -1,7 +1,7 @@
 ---
 header:
   - name: GitHub
-    ref: https://github.com/InfuseAI/ArtiV
+    ref: https://github.com/InfuseAI/ArtiVC
     icon: gdoc_github
     external: true
   - name: Blogs

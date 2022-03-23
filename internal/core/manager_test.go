@@ -36,7 +36,7 @@ func TestPutGet(t *testing.T) {
 	assert.Empty(t, err)
 	assert.Equal(t, string(data), content)
 
-	_, err = os.Stat(filepath.Join(wp2, ".art"))
+	_, err = os.Stat(filepath.Join(wp2, ".avc"))
 	assert.True(t, os.IsNotExist(err))
 }
 
@@ -63,7 +63,7 @@ func TestPushPull(t *testing.T) {
 	data, _ := readFile(filepath.Join(wp2, path))
 	assert.Equal(t, string(data), content)
 
-	_, err := os.Stat(filepath.Join(wp2, ".art/config"))
+	_, err := os.Stat(filepath.Join(wp2, ".avc/config"))
 	assert.False(t, os.IsNotExist(err))
 }
 

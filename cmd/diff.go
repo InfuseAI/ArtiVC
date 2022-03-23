@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/infuseai/artiv/internal/core"
+	"github.com/infuseai/artivc/internal/core"
 	"github.com/spf13/cobra"
 )
 
@@ -9,7 +9,7 @@ var diffCommand = &cobra.Command{
 	Use:   "diff",
 	Short: "Diff workspace/commits/references",
 	Example: `# Diff two version
-art diff v0.1.0 v0.2.0`,
+avc diff v0.1.0 v0.2.0`,
 	Args: cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		left := args[0]

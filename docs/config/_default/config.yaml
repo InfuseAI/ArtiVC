@@ -1,6 +1,6 @@
 ---
-baseURL: https://artiv.netlify.app/
-title: ArtiV
+baseURL: https://artivc.netlify.app/
+title: ArtiVC
 theme: hugo-geekdoc
 
 pygmentsUseClasses: true

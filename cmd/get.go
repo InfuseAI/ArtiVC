@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/infuseai/artiv/internal/core"
+	"github.com/infuseai/artivc/internal/core"
 	"github.com/spf13/cobra"
 )
 
@@ -16,16 +16,16 @@ var getCmd = &cobra.Command{
 	DisableFlagsInUseLine: true,
 	Short:                 "Download data from a repository",
 	Example: `  # Download the latest version. The data go to "mydataset" folder.
-  art get s3://bucket/mydataset
+  avc get s3://bucket/mydataset
 
   # Download the specific version
-  art get s3://mybucket/path/to/mydataset@v1.0.0
+  avc get s3://mybucket/path/to/mydataset@v1.0.0
   
   # Download to a specific folder
-  art get -o /tmp/mydataset s3://bucket/mydataset
+  avc get -o /tmp/mydataset s3://bucket/mydataset
 
   # Download partial files
-  art get -o /tmp/mydataset s3://bucket/mydataset -- path/to/file1 path/to/file2 data/`,
+  avc get -o /tmp/mydataset s3://bucket/mydataset -- path/to/file1 path/to/file2 data/`,
 	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
@@ -55,7 +55,7 @@ var getCmd = &cobra.Command{
 			return
 		}
 
-		metadataDir, _ := os.MkdirTemp(os.TempDir(), "*-art")
+		metadataDir, _ := os.MkdirTemp(os.TempDir(), "*-avc")
 		defer os.RemoveAll(metadataDir)
 
 		config := core.NewConfig(baseDir, metadataDir, repoUrl)

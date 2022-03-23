@@ -49,7 +49,7 @@ var versionCommand = &cobra.Command{
 	Short: "Print the version information",
 	Long: `Print the version information. For example:
 
-art version
+avc version
 version.BuildInfo{"Version":"v0.1-dev","GitCommit":"59b5c650fbed4d91c1e54b7cb3c3f6f0c50e5fa4","GitTreeState":"dirty","GoVersion":"go1.17.5"}
 `,
 	Run: func(cmd *cobra.Command, args []string) {

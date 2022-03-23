@@ -6,24 +6,24 @@ import (
 	"os"
 	"strings"
 
-	"github.com/infuseai/artiv/internal/core"
-	"github.com/infuseai/artiv/internal/repository"
+	"github.com/infuseai/artivc/internal/core"
+	"github.com/infuseai/artivc/internal/repository"
 	"github.com/spf13/cobra"
 )
 
 var configCommand = &cobra.Command{
 	Use:                   "config [<key> [<value>]]",
 	Short:                 "Configure the workspace",
-	Long:                  "Configure the workspace. The config file is stored at \".art/config\".",
+	Long:                  "Configure the workspace. The config file is stored at \".avc/config\".",
 	DisableFlagsInUseLine: true,
 	Example: `  # List the config
-  art config
+  avc config
 
   # Get the config
-  art config repo.url
+  avc config repo.url
 
   # Set the config
-  art config repo.url s3://your-bucket/data`,
+  avc config repo.url s3://your-bucket/data`,
 	Args: cobra.RangeArgs(0, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		config, err := core.LoadConfig("")

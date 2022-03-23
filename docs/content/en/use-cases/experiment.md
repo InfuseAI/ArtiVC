@@ -17,8 +17,8 @@ In this use case, we use `get` and `put` commands to simplify the commands for p
    ```
 1. Download the dataset and the base model
    ```shell
-   art get -o dataset/ s3://mybucket/datasets/flowers-classification@v0.1.0
-   art get -o base/ s3://mybucket/models/my-base-model@v0.3.0
+   avc get -o dataset/ s3://mybucket/datasets/flowers-classification@v0.1.0
+   avc get -o base/ s3://mybucket/models/my-base-model@v0.3.0
    ```   
 1. Train and output your training result (trained model, experiment log, hyperparams, etc) to `artifacts/` folder
    ```shell
@@ -26,5 +26,5 @@ In this use case, we use `get` and `put` commands to simplify the commands for p
    ``` 
 1. Upload the artifacts 
    ```shell
-   art put artifacts/ s3://mybucket/experiments/project1@202220303-100504
+   avc put artifacts/ s3://mybucket/experiments/project1@202220303-100504
    ```

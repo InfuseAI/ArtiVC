@@ -4,7 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/infuseai/artiv/internal/core"
+	"github.com/infuseai/artivc/internal/core"
 	"github.com/spf13/cobra"
 )
 
@@ -13,10 +13,10 @@ var putCmd = &cobra.Command{
 	DisableFlagsInUseLine: true,
 	Short:                 "Upload data to a repository",
 	Example: `  # Upload the latest version
-  art put ./folder/ /path/to/mydataset
+  avc put ./folder/ /path/to/mydataset
 
   # Upload the specific version
-  art put ./folder/ /path/to/mydataset@v1.0.0`,
+  avc put ./folder/ /path/to/mydataset@v1.0.0`,
 	Args: cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		baseDir, err := filepath.Abs(args[0])
@@ -43,7 +43,7 @@ var putCmd = &cobra.Command{
 		}
 
 		// Create temp metadata
-		metadataDir, _ := os.MkdirTemp(os.TempDir(), "*-art")
+		metadataDir, _ := os.MkdirTemp(os.TempDir(), "*-avc")
 		defer os.RemoveAll(metadataDir)
 
 		config := core.NewConfig(baseDir, metadataDir, repoUrl)

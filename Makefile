@@ -10,15 +10,15 @@ ifeq ($(VERSION),)
 VERSION := $(shell echo $${GITHUB_REF_NAME})
 endif
 
-LDFLAGS += -X github.com/infuseai/artiv/cmd.tagVersion=${VERSION}
-LDFLAGS += -X github.com/infuseai/artiv/cmd.gitCommit=${GIT_COMMIT}
-LDFLAGS += -X github.com/infuseai/artiv/cmd.gitTreeState=${GIT_DIRTY}
+LDFLAGS += -X github.com/infuseai/artivc/cmd.tagVersion=${VERSION}
+LDFLAGS += -X github.com/infuseai/artivc/cmd.gitCommit=${GIT_COMMIT}
+LDFLAGS += -X github.com/infuseai/artivc/cmd.gitTreeState=${GIT_DIRTY}
 LDFLAGS += $(EXT_LDFLAGS)
 
 
 build:
 	mkdir -p bin
-	go build -o bin/art -ldflags '$(LDFLAGS)' main.go
+	go build -o bin/avc -ldflags '$(LDFLAGS)' main.go
 
 test:
 	go test ./...

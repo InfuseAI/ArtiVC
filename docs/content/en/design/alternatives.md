@@ -11,4 +11,4 @@ weight: 4
     - use `git` command to version small files or metadata, use `dvc` to manage large files.
     - you need to know both git and dvc. In the workflow, the two commands should switch back and forth. See the [dvc tutorial](https://dvc.org/doc/use-cases/versioning-data-and-model-files/tutorial)
 - **LakeFS**: [LakeFS](https://lakefs.io/) provides a multi-server solution to make s3 as git-like repositories
-    - the [architecture](https://docs.lakefs.io/understand/architecture.html) is much heavier than ArtiV due to an extra database for metadata storage and S3 configuration. (e.g., S3 gateway)
+    - the [architecture](https://docs.lakefs.io/understand/architecture.html) is much heavier than ArtiVC due to an extra database for metadata storage and S3 configuration. (e.g., S3 gateway)

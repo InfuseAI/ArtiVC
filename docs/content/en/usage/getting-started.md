@@ -10,25 +10,25 @@ This page tells you how to get started with the Geekdoc theme, including install
 {{< toc >}}
 
 
-# Install ArtiV
+# Install ArtiVC
 
 ## Install from Release Page
 
-Download the latest ArtiV in the [release](https://github.com/InfuseAI/ArtiV/releases) page
+Download the latest ArtiVC in the [release](https://github.com/InfuseAI/ArtiVC/releases) page
 
 ## Install by homebrew
 
 ```shell
-brew tap infuseai/artiv 
-brew install artiv
+brew tap infuseai/artivc 
+brew install artivc
 ```
 
 # Quick Start
 ## Push data
-1. Prepare your data. We put data in the folder `/tmp/artiv/workspace`
+1. Prepare your data. We put data in the folder `/tmp/artivc/workspace`
    ```shell
-   mkdir -p /tmp/artiv/workspace
-   cd /tmp/artiv/workspace
+   mkdir -p /tmp/artivc/workspace
+   cd /tmp/artivc/workspace
    ```
 
    put the first version of data
@@ -38,83 +38,83 @@ brew install artiv
    echo c > c
    ```
 
-1. Select a folder as the repository. Here we use `/tmp/artiv/repo`
+1. Select a folder as the repository. Here we use `/tmp/artivc/repo`
    ```shell
-   mkdir -p /tmp/artiv/repo
+   mkdir -p /tmp/artivc/repo
    ```
 
 1. Init the workspace
 
    ```shell
-   # in /tmp/artiv/workspace
-   art init /tmp/artiv/repo
+   # in /tmp/artivc/workspace
+   avc init /tmp/artivc/repo
    ```
 
 1. Push the data
    ```shell
-   art push
+   avc push
    ```
 
 1. See the commit log
    ```shell
-   art log
+   avc log
    ```
 
 1. Add more data to your repository
 
    ```shell
    echo "hello" > hello
-   art status
+   avc status
    ```
 
    push to the remote
    ```shell
-   art push
+   avc push
    ```
 
 1. Tag a version
 
    ```shell
-   art tag v0.1.0
+   avc tag v0.1.0
    ```
 
    See the log
    ```shell
-   art log
+   avc log
    ```
 
 ## Clone data from exisiting repository
 1. Go to the folder to clone repository
    ```shell
-   cd /tmp/artiv/
-   art clone /tmp/artiv/repo another-workspace   
+   cd /tmp/artivc/
+   avc clone /tmp/artivc/repo another-workspace   
    ```
    Then the workspace is created, and the data is downloaded.
 
 1. See the commit log
    ```shell
    cd another-workspace/
-   art log
+   avc log
    ```
 
 ## Download data
 
 1. Download the latest version
     ```shell
-    art get -o /tmp/artiv/dl-latest /tmp/artiv/repo
+    avc get -o /tmp/artivc/dl-latest /tmp/artivc/repo
     ```
     
     check the content
     ```shell
-    ls /tmp/artiv/dl-latest
+    ls /tmp/artivc/dl-latest
     ```
 
 1. Or download the specific version
     ```shell
-    art get -o /tmp/artiv/dl_v0.1.0 /tmp/artiv/repo@v0.1.0
+    avc get -o /tmp/artivc/dl_v0.1.0 /tmp/artivc/repo@v0.1.0
     ```
 
     check the content
     ```shell
-    ls /tmp/artiv/dl_v0.1.0
+    ls /tmp/artivc/dl_v0.1.0
     ```

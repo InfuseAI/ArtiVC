@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/infuseai/artiv/cmd"
+	"github.com/infuseai/artivc/cmd"
 )
 
 func main() {

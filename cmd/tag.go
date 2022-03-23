@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/infuseai/artiv/internal/core"
+	"github.com/infuseai/artivc/internal/core"
 	"github.com/spf13/cobra"
 )
 
@@ -12,16 +12,16 @@ var tagCommand = &cobra.Command{
 	DisableFlagsInUseLine: true,
 	Short:                 "List or manage tags",
 	Example: `  # List the tags
-  art tag
+  avc tag
 
   # Tag the lastest commit
-  art tag v1.0.0
+  avc tag v1.0.0
 
   # Tag the specific commit
-  art tag --ref a1b2c3d4 v1.0.0  
+  avc tag --ref a1b2c3d4 v1.0.0  
 
   # Delete a tags
-  art tag --delete v1.0.0`,
+  avc tag --delete v1.0.0`,
 	Args: cobra.RangeArgs(0, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		config, err := core.LoadConfig("")
