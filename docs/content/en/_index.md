@@ -15,7 +15,7 @@ geekdocAnchor: false
 **ArtiVC** is like Git for files versioning and like Rclone for cloud storage.
 
 <--->
-[![asciicast](https://asciinema.org/a/XP7AWyrCszebm1KuF3PcYfnRK.svg)](https://asciinema.org/a/XP7AWyrCszebm1KuF3PcYfnRK?autoplay=1)
+[![asciicast](https://asciinema.org/a/6JEhzpJ5QMiSkiC74s5CyT257.svg)](https://asciinema.org/a/6JEhzpJ5QMiSkiC74s5CyT257?autoplay=1)
 {{< /columns >}}
 
 {{< button size="large" relref="usage/getting-started/" >}}Getting Started{{< /button >}}
