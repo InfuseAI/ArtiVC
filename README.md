@@ -1,6 +1,6 @@
 # ArtiVC
 
-[ArtiVC](https://artivc.netlify.app/) (**Arti**fact **V**ersion **C*ontrl) is a version control system for large files. 
+[ArtiVC](https://artivc.netlify.app/) (**Arti**fact **V**ersion **C**ontrl) is a version control system for large files. 
 
 To store and share large files, we may use NFS or object storage (e.g. s3, MinIO). However, if we would like to do versioning on top of them, it is not a trivial thing. ArtiVC is a CLI tool to enable you to version files on your storage without pain. You don't need to install any additional server or gateway and we turn your storage into the versioned repository.
 
