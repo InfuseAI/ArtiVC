@@ -4,10 +4,10 @@ more:
     ref: "/posts"
     icon: "gdoc_notification"
   - name: Releases
-    ref: "https://github.com/infuseai/artiv/releases"
+    ref: "https://github.com/infuseai/artivc/releases"
     external: true
     icon: "gdoc_download"
   - name: View Source
-    ref: "https://github.com/infuseai/artiv"
+    ref: "https://github.com/infuseai/artivc"
     external: true
     icon: "gdoc_github"

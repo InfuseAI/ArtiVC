@@ -3,7 +3,7 @@ package cmd
 import (
 	"errors"
 
-	"github.com/infuseai/artiv/internal/core"
+	"github.com/infuseai/artivc/internal/core"
 	"github.com/spf13/cobra"
 )
 
@@ -12,14 +12,14 @@ var pullCmd = &cobra.Command{
 	Use:   "pull [<commit>|<tag>]",
 	Short: "Pull data from the repository",
 	Example: `  # Pull the latest version
-  art pull
+  avc pull
 
   # Pull from a specifc version
-  art pull v1.0.0
+  avc pull v1.0.0
 
   # Pull partial files
-  art pull -- path/to/partia
-  art pull v0.1.0 -- path/to/partia ...`,
+  avc pull -- path/to/partia
+  avc pull v0.1.0 -- path/to/partia ...`,
 	Run: func(cmd *cobra.Command, args []string) {
 		config, err := core.LoadConfig("")
 		if err != nil {

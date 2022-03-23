@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/infuseai/artiv/internal/core"
-	"github.com/infuseai/artiv/internal/repository"
+	"github.com/infuseai/artivc/internal/core"
+	"github.com/infuseai/artivc/internal/repository"
 	"github.com/spf13/cobra"
 )
 
@@ -16,10 +16,10 @@ var initCommand = &cobra.Command{
 	Short:                 "Initiate a workspace",
 	DisableFlagsInUseLine: true,
 	Example: `  # Init a workspace with local repository
-  art init /path/to/mydataset
+  avc init /path/to/mydataset
 
   # Init a workspace with s3 repository
-  art init s3://mybucket/path/to/mydataset`,
+  avc init s3://mybucket/path/to/mydataset`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		cwd, _ := os.Getwd()
@@ -40,7 +40,7 @@ var initCommand = &cobra.Command{
 			return
 		}
 
-		fmt.Printf("Initialize the artiv workspace of the repository '%s'\n", repo)
+		fmt.Printf("Initialize the artivc workspace of the repository '%s'\n", repo)
 		core.InitWorkspace(cwd, repo)
 	},
 }

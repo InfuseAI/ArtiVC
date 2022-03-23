@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/infuseai/artiv/internal/core"
-	"github.com/infuseai/artiv/internal/repository"
+	"github.com/infuseai/artivc/internal/core"
+	"github.com/infuseai/artivc/internal/repository"
 	"github.com/spf13/cobra"
 )
 
@@ -18,10 +18,10 @@ var cloneCommand = &cobra.Command{
 	Short:                 "Clone a workspace",
 	DisableFlagsInUseLine: true,
 	Example: `  # clone a workspace with local repository
-  art clone /path/to/mydataset
+  avc clone /path/to/mydataset
 
   # clone a workspace with s3 repository
-  art clone s3://mybucket/path/to/mydataset`,
+  avc clone s3://mybucket/path/to/mydataset`,
 	Args: cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		cwd, _ := os.Getwd()

@@ -16,8 +16,8 @@ import (
 	"time"
 
 	"github.com/fatih/color"
-	"github.com/infuseai/artiv/internal/executor"
-	"github.com/infuseai/artiv/internal/repository"
+	"github.com/infuseai/artivc/internal/executor"
+	"github.com/infuseai/artivc/internal/repository"
 )
 
 type ArtifactManager struct {
@@ -26,7 +26,7 @@ type ArtifactManager struct {
 	baseDir string // the workspace base dir
 
 	/* the path to store the metadata of the repository.
-	If it is in a workspace, the path should be "${baseDir}/.art"*/
+	If it is in a workspace, the path should be "${baseDir}/.avc"*/
 	metadataDir string
 
 	// repository
@@ -129,7 +129,7 @@ func (mngr *ArtifactManager) DownloadBlob(localPath, hash string, meter *reposit
 	}
 
 	repoPath := MakeObjectPath(hash)
-	tmpDir := path.Join(mngr.baseDir, ".art", "tmp")
+	tmpDir := path.Join(mngr.baseDir, ".avc", "tmp")
 
 	err = mngr.Download(repoPath, blobPath, tmpDir, meter)
 	if err != nil {
@@ -197,7 +197,7 @@ func (mngr *ArtifactManager) GetRef(ref string) (string, error) {
 		return "", err
 	}
 
-	tmpDir := path.Join(mngr.metadataDir, ".art", "tmp")
+	tmpDir := path.Join(mngr.metadataDir, ".avc", "tmp")
 	err = mngr.Download(refPath, localPath, tmpDir, nil)
 	if err != nil {
 		return "", err
@@ -227,7 +227,7 @@ func (mngr *ArtifactManager) GetCommit(hash string) (*Commit, error) {
 			return nil, err
 		}
 
-		tmpDir := path.Join(mngr.metadataDir, ".art", "tmp")
+		tmpDir := path.Join(mngr.metadataDir, ".avc", "tmp")
 		err = mngr.Download(commitPath, localPath, tmpDir, nil)
 		if err != nil {
 			return nil, err
@@ -506,7 +506,7 @@ func (mngr *ArtifactManager) MakeWorkspaceCommit(parent string, message *string,
 			}
 
 			path := absPath[len(baseDir)+1:]
-			if strings.HasPrefix(path, ".art/") {
+			if strings.HasPrefix(path, ".avc/") {
 				return nil
 			}
 
@@ -702,7 +702,7 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 			return err
 		}
 	}
-	_, err = removeEmptyDirs(filepath.Join(mngr.baseDir, ".art"), true)
+	_, err = removeEmptyDirs(filepath.Join(mngr.baseDir, ".avc"), true)
 	if err != nil {
 		return err
 	}

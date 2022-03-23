@@ -1,13 +1,13 @@
 ---
 description: >
-  ArtiV (Artifact Versions) is a version control system for large files.
+  ArtiVC (Artifact Version Control) is a version control system for large files.
 images:
-  - "socialartiv.png"
+  - "socialartivc.png"
 
 geekdocToC: 3
 geekdocTagsToMenu: true
 
-geekdocRepo: https://github.com/InfuseAI/ArtiV
+geekdocRepo: https://github.com/InfuseAI/ArtiVC
 geekdocEditPath: edit/main/docs
 
 geekdocSearch: true

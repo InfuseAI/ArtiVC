@@ -6,7 +6,7 @@ There are three major types of data are stored in the artifact repository
 - **Commit**: whenever the client pushes a commit to the repository, it creates a commit object to the store. It contains the timestamp, message, and the list of blobs. A commit is also stored at the path of the content hash. It makes it impossible to change the content because the hash would be invalid. The content of a commit is a gzip-compressed JSON content.
 - **Reference**: References are the named tags or time strings to link to a commit. It makes it possible to do the versioning. A special kind of reference `latest` is used by default whenever the client pushes a commit to an artifact repository.
 
-![](../images/artiv-overview.png)
+![](../images/artivc-overview.png)
 
 
 

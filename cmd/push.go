@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/infuseai/artiv/internal/core"
+	"github.com/infuseai/artivc/internal/core"
 	"github.com/spf13/cobra"
 )
 
@@ -12,11 +12,11 @@ var pushCmd = &cobra.Command{
 	Short:                 "Push data to the repository",
 	Long:                  `Push data to the repository. There is no branch implemented yet, all put and push commands are always creating a commit and treat as the latest commit.`,
 	Example: `  # Push to the latest version
-  art push -m 'Initial version'
+  avc push -m 'Initial version'
 
   # Push to the latest version and tag to specific version
-  art push -m 'Initial version'
-  art tag v1.0.0`,
+  avc push -m 'Initial version'
+  avc tag v1.0.0`,
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		config, err := core.LoadConfig("")

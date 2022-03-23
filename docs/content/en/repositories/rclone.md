@@ -23,13 +23,13 @@ weight: 50
 Init a workspace
 
 ```shell
-# art init rclone://<remote>/<path>
-art init rclone://myremote/path/to/mydataset
+# avc init rclone://<remote>/<path>
+avc init rclone://myremote/path/to/mydataset
 ```
 
 Clone a repository
 
 ```shell
-art clone rclone://myremote/path/to/mydataset
+avc clone rclone://myremote/path/to/mydataset
 cd mydataset/
 ```

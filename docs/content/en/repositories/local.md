@@ -9,15 +9,15 @@ The local filesystem repository uses a folder of local fileysystem as the reposi
 Init a workspace
 
 ```shell
-art init /path/to/mydataset
+avc init /path/to/mydataset
 
 # Or use relative path
-# art init ../mydataset
+# avc init ../mydataset
 ```
 
 Clone a repository
 
 ```shell
-art clone /path/to/mydataset
+avc clone /path/to/mydataset
 cd mydataset/
 ```

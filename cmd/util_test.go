@@ -7,7 +7,7 @@ import (
 )
 
 func TestTransformRepoUrl(t *testing.T) {
-	baseDir := "/tmp/artiv"
+	baseDir := "/tmp/artivc"
 	testCases := []struct {
 		desc string
 		in   string

@@ -5,7 +5,7 @@ weight: 2
 
 {{<toc>}}
 
-This document shows the performance benchmark of ArtiV and alternatives. We choose these three tools to compare
+This document shows the performance benchmark of ArtiVC and alternatives. We choose these three tools to compare
 
 - [AWS CLI](https://aws.amazon.com/cli/) (2.4.18): AWS CLI is the AWS official tool to upload/download and manage s3. We use it as the baseline to compare with other tools.
 - [Rclone](https://rclone.org/) (v1.57.0) RClone is a command line program to manage files on cloud storage. It is just like rsync, but for cloud storage.
@@ -52,16 +52,16 @@ dvc pull
 ```
 {{< /tab >}}
 
-{{<tab "ArtiV">}}
+{{<tab "ArtiVC">}}
 ```bash
 # init
-art init s3://art-vcs/benchmark/
+avc init s3://art-vcs/benchmark/
 
 # upload
-art push
+avc push
 
 # download
-art pull
+avc pull
 ```
 {{< /tab >}}
 
@@ -168,18 +168,18 @@ time dvc pull
 ```
 {{</tab>}}
 
-{{<tab "ArtiV">}}
+{{<tab "ArtiVC">}}
 
 
 ```bash
 # init
-art init s3://art-vcs/benchmark/large-files/artiv/
+avc init s3://art-vcs/benchmark/large-files/artivc/
 
 # upload
-time art push
+time avc push
 
 # download
-time art pull
+time avc pull
 ```
 {{</tab>}}
 {{</tabs>}}
@@ -193,10 +193,10 @@ Result
 | AWS CLI | 1m43s / 1m43s | 1m53s / 1m52s |
 | Rclone | 1m59s / 2.6s | 2m22s / 2.6s |
 | DVC | 1m44s / 1s | 1m27s / <1s |
-| ArtiV | 1m43s / <1s | 1m30s / <1s |
+| ArtiVC | 1m43s / <1s | 1m30s / <1s |
 
 
-For the first trial of download, all four tools have a similar result. But for the second trial, all tools except AWS CLI would check the content hash from local to remote. ArtiV has the best performance because the file list and hashes are stored in ONE commit object. That is, there is only one API request required for this test case.
+For the first trial of download, all four tools have a similar result. But for the second trial, all tools except AWS CLI would check the content hash from local to remote. ArtiVC has the best performance because the file list and hashes are stored in ONE commit object. That is, there is only one API request required for this test case.
 
 ## Transfer large amount of files
 
@@ -255,17 +255,17 @@ time dvc pull
 ```
 {{</tab>}}
 
-{{<tab "ArtiV">}}
+{{<tab "ArtiVC">}}
 
 ```bash
 # init
-art init s3://art-vcs/benchmark/
+avc init s3://art-vcs/benchmark/
 
 # upload
-time art push
+time avc push
 
 # download
-time art pull
+time avc pull
 ```
 {{</tab>}}
 {{</tabs>}}
@@ -279,12 +279,12 @@ Result
 | aws cli | 16s / 16s | 10s / 10s |
 | rclone | 51s / 12s | 20s / 12s |
 | dvc | 20s / 1s | 18s / <1s |
-| artiv | 12s / <1s | 8s / <1s |
+| artivc | 12s / <1s | 8s / <1s |
 
 
-For the first trial, RClone gets the worst performance because it own have four threads (transfers) by default. We can use `--transfers 10` option to increase the transfer speed. ArtiV has the best performance for the first trial because there is an optimization for the first push if there is no commit in the remote repository. It will upload all the files without a content check.
+For the first trial, RClone gets the worst performance because it own have four threads (transfers) by default. We can use `--transfers 10` option to increase the transfer speed. ArtiVC has the best performance for the first trial because there is an optimization for the first push if there is no commit in the remote repository. It will upload all the files without a content check.
 
-For the second trial, ArtiV and DVC have an efficient way to know no transfer is required. RClone would check all the content hash one by one.
+For the second trial, ArtiVC and DVC have an efficient way to know no transfer is required. RClone would check all the content hash one by one.
 
 ## Determining which files to upload
 
@@ -331,10 +331,10 @@ time rclone copy --dry-run —no-traverse s3:art-vcs/benchmark/ .
 time dvc status -c
 ```
 {{</tab>}}
-{{<tab "ArtiV">}}
+{{<tab "ArtiVC">}}
 
 ```bash
-time art push --dry-run
+time avc push --dry-run
 ```
 {{</tab>}}
 {{</tabs>}}
@@ -347,14 +347,14 @@ Result
     | rclone | 3s | 16s | 11s |
     | rclone (—no-traverse) | 7m48s | 6.6s | 2s |
     | dvc | 3s | 6.6s | 2.2s |
-    | artiv | 1.1s | <1s | <1s |
+    | artivc | 1.1s | <1s | <1s |
 
 
-Just like the [blog post](https://dvc.org/blog/dvc-vs-rclone), DVC uses an adaptive method to query data from remote, but ArtiV still outperforms DVC, why? The reason is DVC uses a `data.dvc` file holding the content hash of a version of the folder, and the file list and md5 hashes are stored in a `<hash>.dir` file. Even though there is the file list stored in the `<hash>.dir`, it still cannot guarantee that all the files are available in the remote. DVC still needs to use one of the two methods to synchronize the status between local and remote.
+Just like the [blog post](https://dvc.org/blog/dvc-vs-rclone), DVC uses an adaptive method to query data from remote, but ArtiVC still outperforms DVC, why? The reason is DVC uses a `data.dvc` file holding the content hash of a version of the folder, and the file list and md5 hashes are stored in a `<hash>.dir` file. Even though there is the file list stored in the `<hash>.dir`, it still cannot guarantee that all the files are available in the remote. DVC still needs to use one of the two methods to synchronize the status between local and remote.
 
-ArtiV uses another way. ArtiV is a centralized version control system and the commit object is stored in this repository. All push commands should guarantee that all files should be successfully uploaded to the repository and then the commit object can be uploaded to the repository. So if we can get the commit object from the repo, we can say that all the files listed in the commit objects are available in the repo. There is no additional need to check the existence one by one.
+ArtiVC uses another way. ArtiVC is a centralized version control system and the commit object is stored in this repository. All push commands should guarantee that all files should be successfully uploaded to the repository and then the commit object can be uploaded to the repository. So if we can get the commit object from the repo, we can say that all the files listed in the commit objects are available in the repo. There is no additional need to check the existence one by one.
 
 
 # Conclusions
 
-From the benchmark, we know ArtiV has a similar performance as AWS CLI while downloading and uploading the data. Using the commit object, we can easily manipulate the changeset with only one API call, no matter how many objects in local or remote.
+From the benchmark, we know ArtiVC has a similar performance as AWS CLI while downloading and uploading the data. Using the commit object, we can easily manipulate the changeset with only one API call, no matter how many objects in local or remote.

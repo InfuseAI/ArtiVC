@@ -14,8 +14,8 @@ doc-assets:
 
 
 doc-commands:
-	rm -rf content/en/commands/art.md
-	rm -rf content/en/commands/art_*.md
+	rm -rf content/en/commands/avc.md
+	rm -rf content/en/commands/avc_*.md
 	go run ../main.go docs
 	cp -R ./generated_docs/ content/en/commands/
 	rm -rf ./generated_docs/

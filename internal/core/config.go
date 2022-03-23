@@ -20,7 +20,7 @@ func InitWorkspace(baseDir, repo string) error {
 		},
 	}
 
-	configPath := path.Join(baseDir, ".art/config")
+	configPath := path.Join(baseDir, ".avc/config")
 	err := mkdirsForFile(configPath)
 	if err != nil {
 		return err
@@ -60,7 +60,7 @@ func NewConfig(baseDir, metadataDir, repoUrl string) ArtConfig {
 func LoadConfig(dir string) (ArtConfig, error) {
 	load := func(dir string) (map[string]interface{}, error) {
 		config := make(map[string]interface{})
-		configPath := path.Join(dir, ".art/config")
+		configPath := path.Join(dir, ".avc/config")
 
 		data, err := ioutil.ReadFile(configPath)
 		if err != nil {
@@ -92,7 +92,7 @@ func LoadConfig(dir string) (ArtConfig, error) {
 		}
 
 		if err == nil {
-			return ArtConfig{config: config, BaseDir: dir, MetadataDir: path.Join(dir, ".art")}, nil
+			return ArtConfig{config: config, BaseDir: dir, MetadataDir: path.Join(dir, ".avc")}, nil
 		}
 
 		newDir := filepath.Dir(dir)
