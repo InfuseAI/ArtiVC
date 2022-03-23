@@ -3,7 +3,7 @@ package cmd
 import (
 	"errors"
 
-	"github.com/infuseai/artiv/internal/core"
+	"github.com/infuseai/artivc/internal/core"
 	"github.com/spf13/cobra"
 )
 
