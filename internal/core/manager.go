@@ -609,12 +609,13 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 
 	// Diff
 	result, err := mngr.Diff(DiffOptions{
-		NoDelete:     !options.Delete,
-		LeftCommit:   commitLocal,
-		RightCommit:  commitRemote,
-		AddFilter:    avcIgnoreFilter,
-		ChangeFilter: avcIgnoreFilter,
-		DeleteFilter: avcIgnoreFilter,
+		NoDelete:      !options.Delete,
+		LeftCommit:    commitLocal,
+		RightCommit:   commitRemote,
+		AddFilter:     avcIgnoreFilter,
+		ChangeFilter:  avcIgnoreFilter,
+		DeleteFilter:  avcIgnoreFilter,
+		IncludeFilter: options.FileFilter,
 	})
 	if err != nil {
 		return err
@@ -820,6 +821,9 @@ func (mngr *ArtifactManager) Diff(option DiffOptions) (DiffResult, error) {
 		}
 	}
 	for i, blob := range leftCommit.Blobs {
+		if option.IncludeFilter != nil && !option.IncludeFilter(blob.Path) {
+			continue
+		}
 		entry := entries[blob.Path]
 		entry.left = &leftCommit.Blobs[i]
 		entries[blob.Path] = entry
@@ -840,6 +844,9 @@ func (mngr *ArtifactManager) Diff(option DiffOptions) (DiffResult, error) {
 	}
 
 	for i, blob := range rightCommit.Blobs {
+		if option.IncludeFilter != nil && !option.IncludeFilter(blob.Path) {
+			continue
+		}
 		entry := entries[blob.Path]
 		entry.right = &rightCommit.Blobs[i]
 		entries[blob.Path] = entry

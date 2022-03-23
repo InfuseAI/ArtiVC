@@ -40,19 +40,21 @@ type PullOptions struct {
 	NoFetch     bool
 	Delete      bool
 	RefOrCommit *string
+	FileFilter  PathFilter
 }
 
 type PathFilter func(path string) bool
 
 type DiffOptions struct {
-	LeftRef      string
-	LeftCommit   *Commit
-	RightRef     string
-	RightCommit  *Commit
-	AddFilter    PathFilter
-	ChangeFilter PathFilter
-	DeleteFilter PathFilter
-	NoDelete     bool
+	LeftRef       string
+	LeftCommit    *Commit
+	RightRef      string
+	RightCommit   *Commit
+	AddFilter     PathFilter
+	ChangeFilter  PathFilter
+	DeleteFilter  PathFilter
+	IncludeFilter PathFilter
+	NoDelete      bool
 }
 
 type DiffType int
