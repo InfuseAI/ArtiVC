@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"
@@ -25,6 +27,11 @@ avc docs`,
 			fmt.Printf("Failed to create %s, skip to generate documents\n", DocDir)
 			return
 		}
-		doc.GenMarkdownTree(cmd.Root(), DocDir)
+		linkHandler := func(name string) string {
+			base := strings.TrimSuffix(name, path.Ext(name))
+			return "/commands/" + strings.ToLower(base) + "/"
+		}
+
+		doc.GenMarkdownTreeCustom(cmd.Root(), DocDir, func(filestring string) string { return "" }, linkHandler)
 	},
 }
