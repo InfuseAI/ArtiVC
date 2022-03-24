@@ -9,7 +9,7 @@ import (
 
 // getCmd represents the download command
 var pullCmd = &cobra.Command{
-	Use:   "pull [<commit>|<tag>]",
+	Use:   "pull [<commit>|<tag>] [flags] -- <pathspec>...",
 	Short: "Pull data from the repository",
 	Example: `  # Pull the latest version
   avc pull

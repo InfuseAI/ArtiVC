@@ -3,7 +3,7 @@
 Pull data from the repository
 
 ```
-avc pull [<commit>|<tag>] [flags]
+avc pull [<commit>|<tag>] [flags] -- <pathspec>...
 ```
 
 ### Examples

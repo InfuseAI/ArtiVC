@@ -3,7 +3,7 @@
 Download data from a repository
 
 ```
-avc get [-o <output>] <repository>[@<commit>|<tag>]
+avc get [-o <output>] <repository>[@<commit>|<tag>] [--] <pathspec>...
 ```
 
 ### Examples

@@ -12,7 +12,7 @@ import (
 
 // getCmd represents the download command
 var getCmd = &cobra.Command{
-	Use:                   "get [-o <output>] <repository>[@<commit>|<tag>]",
+	Use:                   "get [-o <output>] <repository>[@<commit>|<tag>] [--] <pathspec>...",
 	DisableFlagsInUseLine: true,
 	Short:                 "Download data from a repository",
 	Example: `  # Download the latest version. The data go to "mydataset" folder.
