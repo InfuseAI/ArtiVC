@@ -121,7 +121,13 @@ func (repo *S3Repository) Stat(repoPath string) (FileInfo, error) {
 		Key:    &key,
 	}
 	_, err := repo.client.HeadObject(context.TODO(), input)
-	return nil, err
+	if err != nil {
+		return nil, err
+	}
+
+	return &S3FileInfo{
+		filepath.Base(repoPath),
+	}, nil
 }
 
 func (repo *S3Repository) List(repoPath string) ([]FileInfo, error) {
@@ -138,21 +144,21 @@ func (repo *S3Repository) List(repoPath string) ([]FileInfo, error) {
 	entries := make([]FileInfo, 0)
 	for _, obj := range output.Contents {
 		key := *obj.Key
-		entry := S3DirEntry{name: key[len(fullRepoPath)+1:]}
+		entry := S3FileInfo{name: key[len(fullRepoPath)+1:]}
 		entries = append(entries, &entry)
 	}
 	return entries, err
 }
 
-type S3DirEntry struct {
+type S3FileInfo struct {
 	name string
 }
 
-func (e *S3DirEntry) Name() string {
+func (e *S3FileInfo) Name() string {
 	return e.name
 }
 
-func (e *S3DirEntry) IsDir() bool {
+func (e *S3FileInfo) IsDir() bool {
 	return false
 }
 

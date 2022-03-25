@@ -7,10 +7,6 @@ import (
 )
 
 func Test_sshParseListRecord(t *testing.T) {
-
-}
-
-func Test(t *testing.T) {
 	testCases := []struct {
 		desc  string
 		in    string

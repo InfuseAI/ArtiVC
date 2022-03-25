@@ -94,6 +94,9 @@ func (repo *SSHRepository) Download(repoPath, localPath string, m *Meter) error 
 		return err
 	}
 
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+
 	go func() {
 		gsrc, err := gzip.NewReader(src)
 		if err != nil {
@@ -109,14 +112,21 @@ func (repo *SSHRepository) Download(repoPath, localPath string, m *Meter) error 
 
 	err = cmd.Run()
 	if err != nil {
-		return err
+		return errors.New(stderr.String())
 	}
 
 	return nil
 }
 
 func (repo *SSHRepository) Delete(repoPath string) error {
-	return os.ErrInvalid
+	path := filepath.Join(repo.BaseDir, repoPath)
+	cmd := repo.rcommand("rm " + path)
+	_, err := cmd.Output()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (repo *SSHRepository) Stat(repoPath string) (FileInfo, error) {
@@ -131,6 +141,7 @@ func (repo *SSHRepository) Stat(repoPath string) (FileInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+	result.name = filepath.Base(repoPath)
 
 	return result, nil
 }
