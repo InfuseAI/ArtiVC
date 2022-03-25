@@ -128,16 +128,16 @@ func (repo *LocalFileSystemRepository) Stat(repoPath string) (FileInfo, error) {
 	return os.Stat(filePath)
 }
 
-func (repo *LocalFileSystemRepository) List(repoPath string) ([]ListEntry, error) {
+func (repo *LocalFileSystemRepository) List(repoPath string) ([]FileInfo, error) {
 	dir := path.Join(repo.RepoDir, repoPath)
 	fs, err := os.ReadDir(dir)
 	if err != nil {
-		return []ListEntry{}, nil
+		return []FileInfo{}, nil
 	}
-	fs2 := []ListEntry{}
+	fs2 := []FileInfo{}
 
 	for _, info := range fs {
-		info2, ok := info.(ListEntry)
+		info2, ok := info.(FileInfo)
 		if ok {
 			fs2 = append(fs2, info2)
 		}

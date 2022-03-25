@@ -3,7 +3,6 @@ package repository
 import (
 	"bytes"
 	"encoding/json"
-	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -82,7 +81,7 @@ func (repo *RcloneRepository) Stat(repoPath string) (FileInfo, error) {
 	return nil, nil
 }
 
-func (repo *RcloneRepository) List(repoPath string) ([]ListEntry, error) {
+func (repo *RcloneRepository) List(repoPath string) ([]FileInfo, error) {
 	var out bytes.Buffer
 	cmd := exec.Command("rclone", "lsjson", repo.remotePath(repoPath))
 	cmd.Stdout = &out
@@ -97,7 +96,7 @@ func (repo *RcloneRepository) List(repoPath string) ([]ListEntry, error) {
 		return nil, err
 	}
 
-	entries := make([]ListEntry, 0)
+	entries := make([]FileInfo, 0)
 	for _, entry := range rcloneEntries {
 		entries = append(entries, &entry)
 	}
@@ -123,12 +122,4 @@ func (e *RcloneListEntry) Name() string {
 
 func (e *RcloneListEntry) IsDir() bool {
 	return e.IsDir_
-}
-
-func (e *RcloneListEntry) Type() fs.FileMode {
-	return os.ModePerm
-}
-
-func (e *RcloneListEntry) Info() (fs.FileInfo, error) {
-	return nil, nil
 }

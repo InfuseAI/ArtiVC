@@ -3,11 +3,9 @@ package repository
 import (
 	"errors"
 	"fmt"
-	"io/fs"
 	"net/http"
 	"net/url"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -87,26 +85,14 @@ func (repo *HttpRepository) Stat(repoPath string) (FileInfo, error) {
 		return nil, fmt.Errorf("status code: %d", res.StatusCode)
 	}
 
-	fileSize, err := strconv.ParseInt(res.Header["Content-Length"][0], 10, 64)
-	if err != nil {
-		return nil, err
-	}
-
-	modifiedTime, err := time.Parse(time.RFC1123, res.Header["Last-Modified"][0])
-	if err != nil {
-		return nil, err
-	}
-
 	info := &HttpFileInfo{
-		name:         repoPath,
-		size:         fileSize,
-		modifiedTime: modifiedTime,
+		name: repoPath,
 	}
 
 	return info, nil
 }
 
-func (repo *HttpRepository) List(repoPath string) ([]ListEntry, error) {
+func (repo *HttpRepository) List(repoPath string) ([]FileInfo, error) {
 	return nil, errors.New("List is not supported in Http repository")
 }
 
@@ -123,31 +109,13 @@ func getFilePath(repoPath, filePath string) (string, error) {
 }
 
 type HttpFileInfo struct {
-	name         string
-	size         int64
-	modifiedTime time.Time
+	name string
 }
 
 func (info *HttpFileInfo) Name() string {
 	return info.name
 }
 
-func (info *HttpFileInfo) Size() int64 {
-	return info.size
-}
-
-func (info *HttpFileInfo) Mode() fs.FileMode {
-	return os.ModePerm
-}
-
-func (info *HttpFileInfo) ModTime() time.Time {
-	return info.modifiedTime
-}
-
 func (info *HttpFileInfo) IsDir() bool {
 	return false
-}
-
-func (info *HttpFileInfo) Sys() interface{} {
-	return nil
 }
