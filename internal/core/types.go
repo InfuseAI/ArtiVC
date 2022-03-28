@@ -74,10 +74,12 @@ type DiffRecord struct {
 	Link    string
 	Path    string
 	Size    int64
+	Mode    fs.FileMode
 	OldPath string
 	OldLink string
 	OldHash string
 	OldSize int64
+	OldMode fs.FileMode
 }
 
 type DiffResult struct {

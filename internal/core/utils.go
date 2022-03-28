@@ -123,3 +123,7 @@ func renameFile(src, dst string) error {
 func symlinkFile(target, src string) error {
 	return os.Symlink(target, src)
 }
+
+func chmod(src string, mode fs.FileMode) error {
+	return os.Chmod(src, mode)
+}

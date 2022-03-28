@@ -649,6 +649,11 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 			continue
 		}
 
+		if record.Type == DiffTypeChange && record.OldHash == record.Hash {
+			// mode change
+			continue
+		}
+
 		p := record.Path
 		h := record.Hash
 		s := record.Size
@@ -691,34 +696,57 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 	}
 	fmt.Println()
 
-	// delete, rename, symlink
+	// delete, rename, symlink, chmod
 	for _, record := range result.Records {
+		absPath := filepath.Join(mngr.baseDir, record.Path)
+		mode := record.Mode
+
 		switch record.Type {
 		case DiffTypeAdd:
 			if record.Link != "" {
-				symlinkFile(record.Link, filepath.Join(mngr.baseDir, record.Path))
+				err := symlinkFile(record.Link, absPath)
+				if err != nil {
+					return err
+				}
+			} else {
+				err := chmod(absPath, mode)
+				if err != nil {
+					return err
+				}
 			}
 		case DiffTypeChange:
 			if record.Link != "" {
-				err := deleteFile(filepath.Join(mngr.baseDir, record.Path))
+				err := deleteFile(absPath)
 				if err != nil {
 					return err
 				}
 
-				err = symlinkFile(record.Link, filepath.Join(mngr.baseDir, record.Path))
+				err = symlinkFile(record.Link, absPath)
+				if err != nil {
+					return err
+				}
+			} else {
+				err := chmod(absPath, mode)
 				if err != nil {
 					return err
 				}
 			}
 		case DiffTypeDelete:
-			err := deleteFile(filepath.Join(mngr.baseDir, record.Path))
+			err := deleteFile(absPath)
 			if err != nil {
 				return err
 			}
 		case DiffTypeRename:
-			err := renameFile(filepath.Join(mngr.baseDir, record.OldPath), filepath.Join(mngr.baseDir, record.Path))
+			err := renameFile(filepath.Join(mngr.baseDir, record.OldPath), absPath)
 			if err != nil {
 				return err
+			}
+
+			if record.Hash != "" {
+				err := chmod(absPath, mode)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -908,6 +936,7 @@ func (mngr *ArtifactManager) Diff(option DiffOptions) (DiffResult, error) {
 			} else {
 				record.Hash = entry.right.Hash
 				record.Size = entry.right.Size
+				record.Mode = entry.right.Mode
 				key = record.Hash
 			}
 
@@ -931,10 +960,11 @@ func (mngr *ArtifactManager) Diff(option DiffOptions) (DiffResult, error) {
 			} else {
 				record.Hash = entry.left.Hash
 				record.Size = entry.left.Size
+				record.Mode = entry.left.Mode
 				key = record.Hash
 			}
 			mapDeleted[key] = appendOrMake(mapDeleted[key], record)
-		} else if entry.left.Hash != entry.right.Hash || entry.left.Link != entry.right.Link {
+		} else if entry.left.Hash != entry.right.Hash || entry.left.Mode != entry.right.Mode || entry.left.Link != entry.right.Link {
 			if option.ChangeFilter != nil {
 				if !option.ChangeFilter(path) {
 					continue
@@ -953,6 +983,7 @@ func (mngr *ArtifactManager) Diff(option DiffOptions) (DiffResult, error) {
 			} else {
 				record.OldHash = entry.left.Hash
 				record.OldSize = entry.left.Size
+				record.OldMode = entry.left.Mode
 				key = record.OldHash
 			}
 
@@ -961,6 +992,7 @@ func (mngr *ArtifactManager) Diff(option DiffOptions) (DiffResult, error) {
 			} else {
 				record.Hash = entry.right.Hash
 				record.Size = entry.right.Size
+				record.Mode = entry.right.Mode
 			}
 
 			mapChanged[key] = appendOrMake(mapChanged[key], record)
@@ -986,9 +1018,18 @@ func (mngr *ArtifactManager) Diff(option DiffOptions) (DiffResult, error) {
 		for i := 0; i < n; i++ {
 
 			record := DiffRecord{
-				Type:    DiffTypeRename,
+				Type: DiffTypeRename,
+				Path: addedPaths[i].Path,
+				Hash: addedPaths[i].Hash,
+				Link: addedPaths[i].Link,
+				Mode: addedPaths[i].Mode,
+				Size: addedPaths[i].Size,
+
 				OldPath: deleledPaths[i].Path,
-				Path:    addedPaths[i].Path,
+				OldHash: deleledPaths[i].Hash,
+				OldLink: deleledPaths[i].Link,
+				OldMode: deleledPaths[i].Mode,
+				OldSize: deleledPaths[i].Size,
 			}
 
 			renamedRecords = append(renamedRecords, record)
