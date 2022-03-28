@@ -72,6 +72,7 @@ func Test_Transfer(t *testing.T) {
 		{desc: "small file", size: 1024, repoPath: "bin"},
 		{desc: "small file with subpath", size: 1024, repoPath: "this/is/my/bin"},
 		{desc: "large file", size: 10 * 1024 * 1024, repoPath: "bin"},
+		{desc: "empty file", size: 0, repoPath: "bin"},
 	}
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
@@ -142,5 +143,83 @@ func Test_Stat(t *testing.T) {
 }
 
 func Test_List(t *testing.T) {
+	repo, err := getRepo()
+	if repo == nil {
+		return
+	}
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	rand.Seed(time.Now().UnixNano())
+	tmpDir := t.TempDir()
+	path := tmpDir + "/bin"
+	generateRandomFile(path, 1024)
+
+	// Create files
+	//
+	// dir
+	// ├── 0
+	// ├── 1
+	// ├── 2
+	// └── 3
+	// 	   ├── 0
+	// 	   ├── 1
+	// 	   └── 2
+	for i := 0; i < 3; i++ {
+		rpath := fmt.Sprintf("dir/%d", i)
+		err = repo.Upload(path, rpath, nil)
+		if err != nil {
+			t.Error(err)
+		}
+
+		defer repo.Delete(rpath)
+	}
+	for i := 0; i < 3; i++ {
+		rpath := fmt.Sprintf("dir/3/%d", i)
+
+		err = repo.Upload(path, rpath, nil)
+		if err != nil {
+			t.Error(err)
+		}
+
+		defer repo.Delete(rpath)
+	}
+
+	// test
+	// ls dir
+	list, err := repo.List("dir")
+	assert.Equal(t, 4, len(list))
+	for _, info := range list {
+		switch info.Name() {
+		case "0":
+			assert.False(t, info.IsDir())
+		case "1":
+			assert.False(t, info.IsDir())
+		case "2":
+			assert.False(t, info.IsDir())
+		case "3":
+			assert.True(t, info.IsDir())
+		default:
+			assert.Fail(t, "wrong list item")
+		}
+	}
+
+	// ls dir/3
+	list, err = repo.List("dir/3")
+	assert.Equal(t, 3, len(list))
+	for _, info := range list {
+		switch info.Name() {
+		case "0":
+			assert.False(t, info.IsDir())
+		case "1":
+			assert.False(t, info.IsDir())
+		case "2":
+			assert.False(t, info.IsDir())
+		default:
+			assert.Fail(t, "wrong list item")
+		}
+	}
 
 }

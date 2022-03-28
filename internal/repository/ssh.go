@@ -3,13 +3,15 @@ package repository
 import (
 	"bufio"
 	"bytes"
-	"compress/gzip"
+	"context"
 	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/infuseai/artivc/internal/executor"
 )
 
 // Local Filesystem
@@ -36,7 +38,7 @@ func (repo *SSHRepository) Upload(localPath, repoPath string, m *Meter) error {
 	script := `
 set -e
 mkdir -p ${DEST_DIR}
-cat | gzip -cd > ${DEST_PATH}
+cat > ${DEST_PATH}
 `
 	expandMap := map[string]string{
 		"DEST_DIR":  filepath.Dir(path),
@@ -48,32 +50,44 @@ cat | gzip -cd > ${DEST_PATH}
 	})
 
 	cmd := repo.rcommand(script)
+
+	src, err := os.Open(localPath)
+	if err != nil {
+		return err
+	}
+	defer src.Close()
+
 	dest, err := cmd.StdinPipe()
 	if err != nil {
 		return err
 	}
-	var stderr = bytes.Buffer{}
-	cmd.Stderr = &stderr
 
-	source, err := os.Open(localPath)
+	taskLocal := func(ctx context.Context) error {
+		_, err := CopyWithMeter(dest, src, m)
+		if err != nil {
+			return err
+		}
+
+		src.Close()
+		dest.Close()
+
+		return nil
+	}
+
+	taskRemote := func(ctx context.Context) error {
+		var stderr = bytes.Buffer{}
+		cmd.Stderr = &stderr
+		err = cmd.Run()
+		if err != nil {
+			return errors.New(stderr.String())
+		}
+
+		return nil
+	}
+
+	err = executor.ExecuteAll(2, taskLocal, taskRemote)
 	if err != nil {
 		return err
-	}
-	defer source.Close()
-
-	gdest := gzip.NewWriter(dest)
-	defer gdest.Close()
-
-	go func() {
-		CopyWithMeter(gdest, source, m)
-		source.Close()
-		gdest.Close()
-		dest.Close()
-	}()
-
-	err = cmd.Run()
-	if err != nil {
-		return errors.New(stderr.String())
 	}
 
 	return nil
@@ -81,7 +95,12 @@ cat | gzip -cd > ${DEST_PATH}
 
 func (repo *SSHRepository) Download(repoPath, localPath string, m *Meter) error {
 	path := filepath.Join(repo.BaseDir, repoPath)
-	cmd := repo.rcommand(fmt.Sprintf("gzip -c %s", path))
+	cmd := repo.rcommand(fmt.Sprintf("cat %s", path))
+
+	src, err := cmd.StdoutPipe()
+	if err != nil {
+		return err
+	}
 
 	dest, err := os.Create(localPath)
 	if err != nil {
@@ -89,30 +108,32 @@ func (repo *SSHRepository) Download(repoPath, localPath string, m *Meter) error 
 	}
 	defer dest.Close()
 
-	src, err := cmd.StdoutPipe()
-	if err != nil {
-		return err
+	taskLocal := func(ctx context.Context) error {
+		_, err = CopyWithMeter(dest, src, m)
+		if err != nil {
+			return err
+		}
+
+		dest.Close()
+		src.Close()
+
+		return nil
 	}
 
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-
-	go func() {
-		gsrc, err := gzip.NewReader(src)
+	taskRemote := func(ctx context.Context) error {
+		var stderr bytes.Buffer
+		cmd.Stderr = &stderr
+		err = cmd.Run()
 		if err != nil {
-			return
+			return errors.New(stderr.String())
 		}
-		defer gsrc.Close()
 
-		CopyWithMeter(dest, gsrc, m)
-		dest.Close()
-		gsrc.Close()
-		src.Close()
-	}()
+		return nil
+	}
 
-	err = cmd.Run()
+	err = executor.ExecuteAll(2, taskLocal, taskRemote)
 	if err != nil {
-		return errors.New(stderr.String())
+		return err
 	}
 
 	return nil
@@ -151,17 +172,12 @@ func (repo *SSHRepository) List(repoPath string) ([]FileInfo, error) {
 	path := filepath.Join(repo.BaseDir, repoPath)
 	cmd := repo.rcommand("ls -al " + path)
 
-	out, err := cmd.StdoutPipe()
+	out, err := cmd.Output()
 	if err != nil {
-		return nil, err
+		return entries, err
 	}
 
-	err = cmd.Run()
-	if err != nil {
-		return entries, nil
-	}
-
-	scanner := bufio.NewScanner(out)
+	scanner := bufio.NewScanner(bytes.NewReader(out))
 	for scanner.Scan() {
 		if strings.HasPrefix(scanner.Text(), "total") {
 			continue
@@ -176,6 +192,9 @@ func (repo *SSHRepository) List(repoPath string) ([]FileInfo, error) {
 			continue
 		}
 		entries = append(entries, info)
+	}
+	if err := scanner.Err(); err != nil {
+		return entries, err
 	}
 
 	return entries, nil
