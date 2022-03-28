@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -122,10 +121,16 @@ func (repo *S3Repository) Stat(repoPath string) (FileInfo, error) {
 		Key:    &key,
 	}
 	_, err := repo.client.HeadObject(context.TODO(), input)
-	return nil, err
+	if err != nil {
+		return nil, err
+	}
+
+	return &S3FileInfo{
+		filepath.Base(repoPath),
+	}, nil
 }
 
-func (repo *S3Repository) List(repoPath string) ([]ListEntry, error) {
+func (repo *S3Repository) List(repoPath string) ([]FileInfo, error) {
 	fullRepoPath := filepath.Join(repo.BasePath, repoPath)
 	input := &s3.ListObjectsV2Input{
 		Bucket: &repo.Bucket,
@@ -136,33 +141,25 @@ func (repo *S3Repository) List(repoPath string) ([]ListEntry, error) {
 		return nil, err
 	}
 
-	entries := make([]ListEntry, 0)
+	entries := make([]FileInfo, 0)
 	for _, obj := range output.Contents {
 		key := *obj.Key
-		entry := S3DirEntry{name: key[len(fullRepoPath)+1:]}
+		entry := S3FileInfo{name: key[len(fullRepoPath)+1:]}
 		entries = append(entries, &entry)
 	}
 	return entries, err
 }
 
-type S3DirEntry struct {
+type S3FileInfo struct {
 	name string
 }
 
-func (e *S3DirEntry) Name() string {
+func (e *S3FileInfo) Name() string {
 	return e.name
 }
 
-func (e *S3DirEntry) IsDir() bool {
+func (e *S3FileInfo) IsDir() bool {
 	return false
-}
-
-func (e *S3DirEntry) Type() fs.FileMode {
-	return os.ModePerm
-}
-
-func (e *S3DirEntry) Info() (fs.FileInfo, error) {
-	return nil, nil
 }
 
 type progressReader struct {

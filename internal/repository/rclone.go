@@ -3,11 +3,9 @@ package repository
 import (
 	"bytes"
 	"encoding/json"
-	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"time"
 )
 
 // Local Filesystem
@@ -79,10 +77,13 @@ func (repo *RcloneRepository) Stat(repoPath string) (FileInfo, error) {
 		return nil, os.ErrNotExist
 	}
 
-	return nil, nil
+	return &RcloneFileInfo{
+		Name_:  filepath.Base(repoPath),
+		IsDir_: false,
+	}, nil
 }
 
-func (repo *RcloneRepository) List(repoPath string) ([]ListEntry, error) {
+func (repo *RcloneRepository) List(repoPath string) ([]FileInfo, error) {
 	var out bytes.Buffer
 	cmd := exec.Command("rclone", "lsjson", repo.remotePath(repoPath))
 	cmd.Stdout = &out
@@ -91,13 +92,13 @@ func (repo *RcloneRepository) List(repoPath string) ([]ListEntry, error) {
 		return nil, err
 	}
 
-	var rcloneEntries []RcloneListEntry
+	var rcloneEntries []RcloneFileInfo
 	err = json.Unmarshal(out.Bytes(), &rcloneEntries)
 	if err != nil {
 		return nil, err
 	}
 
-	entries := make([]ListEntry, 0)
+	entries := make([]FileInfo, 0)
 	for _, entry := range rcloneEntries {
 		entries = append(entries, &entry)
 	}
@@ -109,26 +110,15 @@ func (repo *RcloneRepository) remotePath(repoPath string) string {
 	return repo.Remote + ":" + path
 }
 
-type RcloneListEntry struct {
-	Path    string    `json:"Path"`
-	Name_   string    `json:"Name"`
-	Size    uint64    `json:"Size"`
-	ModTime time.Time `json:"ModTime"`
-	IsDir_  bool      `json:"IsDir"`
+type RcloneFileInfo struct {
+	Name_  string `json:"Name"`
+	IsDir_ bool   `json:"IsDir"`
 }
 
-func (e *RcloneListEntry) Name() string {
+func (e *RcloneFileInfo) Name() string {
 	return e.Name_
 }
 
-func (e *RcloneListEntry) IsDir() bool {
+func (e *RcloneFileInfo) IsDir() bool {
 	return e.IsDir_
-}
-
-func (e *RcloneListEntry) Type() fs.FileMode {
-	return os.ModePerm
-}
-
-func (e *RcloneListEntry) Info() (fs.FileInfo, error) {
-	return nil, nil
 }

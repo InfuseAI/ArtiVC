@@ -626,6 +626,7 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 		return nil
 	}
 
+	// download
 	total := 0
 	downloaded := 0
 
@@ -639,37 +640,28 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 	tasks := []executor.TaskFunc{}
 	mtx := sync.Mutex{}
 	for _, record := range result.Records {
+		if record.Type != DiffTypeAdd && record.Type != DiffTypeChange {
+			continue
+		}
+
 		p := record.Path
 		h := record.Hash
 		s := record.Size
 
-		theRecord := record
-		meter := session.NewMeter()
-
 		task := func(ctx context.Context) error {
-			switch theRecord.Type {
-			case DiffTypeAdd, DiffTypeChange:
-				_, err := mngr.DownloadBlob(p, h, meter)
-				if err != nil {
-					return err
-				}
-				mtx.Lock()
-				downloaded++
-				mtx.Unlock()
-				meter.SetBytes(s)
-			case DiffTypeDelete:
-				err := deleteFile(theRecord.Path)
-				if err != nil {
-					return err
-				}
-			case DiffTypeRename:
-				err := renameFile(theRecord.OldPath, theRecord.Path)
-				if err != nil {
-					return err
-				}
+			meter := session.NewMeter()
+			_, err := mngr.DownloadBlob(p, h, meter)
+			if err != nil {
+				return err
 			}
+			mtx.Lock()
+			downloaded++
+			mtx.Unlock()
+			meter.SetBytes(s)
+
 			return nil
 		}
+
 		tasks = append(tasks, task)
 	}
 
@@ -691,9 +683,22 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 		}
 		fmt.Printf("download objects: (%d/%d), speed: %5v/s    \r", downloaded, total, session.CalculateSpeed())
 	}
+	fmt.Println()
 
-	if err != nil {
-		return err
+	// delete and rename
+	for _, record := range result.Records {
+		switch record.Type {
+		case DiffTypeDelete:
+			err := deleteFile(record.Path)
+			if err != nil {
+				return err
+			}
+		case DiffTypeRename:
+			err := renameFile(record.OldPath, record.Path)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	if options.Delete {
@@ -707,7 +712,7 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 		return err
 	}
 
-	fmt.Println()
+	// print summary
 	result.Print(false)
 
 	return nil

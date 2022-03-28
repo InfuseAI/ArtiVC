@@ -1,22 +1,21 @@
 package repository
 
 import (
-	"io/fs"
 	neturl "net/url"
 	"strings"
 )
 
-type (
-	ListEntry fs.DirEntry
-	FileInfo  fs.FileInfo
-)
+type FileInfo interface {
+	Name() string
+	IsDir() bool
+}
 
 type Repository interface {
 	Upload(localPath, repoPath string, meter *Meter) error
 	Download(repoPath, localPath string, meter *Meter) error
 	Delete(repoPath string) error
 	Stat(repoPath string) (FileInfo, error)
-	List(repoPath string) ([]ListEntry, error)
+	List(repoPath string) ([]FileInfo, error)
 }
 
 func NewRepository(repo string) (Repository, error) {
@@ -42,6 +41,8 @@ func NewRepository(repo string) (Repository, error) {
 		return NewS3Repository(url.Host, url.Path)
 	case "rclone":
 		return NewRcloneRepository(url.Host, url.Path)
+	case "ssh":
+		return NewSSHRepository(url.Host, url.Path)
 	case "http", "https":
 		return NewHttpRepository(repo)
 	default:
