@@ -3,14 +3,14 @@ title: Partial Download
 weight: 3
 ---
 
-ArtiVC supports not only whole repository download, but also partial files download in the repository.
+By default, ArtiVC download all files of a version. It also supports to download partial of the files in a commit.
 
 You can download partially:
+
 - by specifying multiple files.
-- by specifying wildcard like `.gitignore` pattern.
+- by specifying wildcard-like `.gitignore` pattern.
 
 For more details, please check the [pattern format](https://git-scm.com/docs/gitignore#_pattern_format) in the git document.
-
 
 ## Usage
 ```shell
@@ -22,7 +22,7 @@ avc pull -- path/to/partial
 avc pull v0.1.0 -- path/to/partial ...
 ```
 
-Note: if you would like to do partial download with `avc pull`, please specify the "--" flag terminator.
+Note: if you would like to do a partial download, please put the path list after the "--" flag terminator.
 
 
 ## SEE ALSO
