@@ -119,3 +119,7 @@ func renameFile(src, dst string) error {
 
 	return os.Rename(src, dst)
 }
+
+func symlinkFile(target, src string) error {
+	return os.Symlink(target, src)
+}

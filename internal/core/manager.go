@@ -197,7 +197,7 @@ func (mngr *ArtifactManager) GetRef(ref string) (string, error) {
 		return "", err
 	}
 
-	tmpDir := path.Join(mngr.metadataDir, ".avc", "tmp")
+	tmpDir := path.Join(mngr.metadataDir, "tmp")
 	err = mngr.Download(refPath, localPath, tmpDir, nil)
 	if err != nil {
 		return "", err
@@ -227,7 +227,7 @@ func (mngr *ArtifactManager) GetCommit(hash string) (*Commit, error) {
 			return nil, err
 		}
 
-		tmpDir := path.Join(mngr.metadataDir, ".avc", "tmp")
+		tmpDir := path.Join(mngr.metadataDir, "tmp")
 		err = mngr.Download(commitPath, localPath, tmpDir, nil)
 		if err != nil {
 			return nil, err
@@ -391,6 +391,11 @@ func (mngr *ArtifactManager) Push(options PushOptions) error {
 	mapUploadBlob := map[string]DiffRecord{}
 	for _, record := range result.Records {
 		if record.Type == DiffTypeAdd || record.Type == DiffTypeChange {
+			if record.Hash == "" {
+				// it is symbolic link. no upload required.
+				continue
+			}
+
 			if _, ok := mapUploadBlob[record.Hash]; !ok {
 				mapUploadBlob[record.Hash] = record
 				total++
@@ -500,25 +505,26 @@ func (mngr *ArtifactManager) MakeWorkspaceCommit(parent string, message *string,
 		if err != nil {
 			return ErrWorkspaceNotFound
 		}
+		if info.IsDir() {
+			return nil
+		}
+
+		path := absPath[len(baseDir)+1:]
+		if strings.HasPrefix(path, ".avc/") {
+			return nil
+		}
+
+		if filter != nil && !filter(path) {
+			return nil
+		}
+
+		if info.Mode()&os.ModeSymlink != 0 {
+			// symbolic
+		} else if !info.Mode().IsRegular() {
+			return fmt.Errorf("not supported file type. %s -> %x", path, info.Mode().Type())
+		}
+
 		task := func(ctx context.Context) error {
-			if info.IsDir() {
-				return nil
-			}
-
-			path := absPath[len(baseDir)+1:]
-			if strings.HasPrefix(path, ".avc/") {
-				return nil
-			}
-
-			if filter != nil && !filter(path) {
-				return nil
-			}
-
-			if info.Mode()&os.ModeSymlink != 0 {
-				link, _ := os.Readlink(absPath)
-				return fmt.Errorf("symbolic link not implemented now. %s -> %s", path, link)
-			}
-
 			metadata, err := MakeBlobMetadata(baseDir, path)
 			if err != nil {
 				return fmt.Errorf("cannot make metadata: %s", path)
@@ -630,17 +636,16 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 	total := 0
 	downloaded := 0
 
-	for _, record := range result.Records {
-		if record.Type == DiffTypeAdd || record.Type == DiffTypeChange {
-			total++
-		}
-	}
-
 	session := repository.NewSession()
 	tasks := []executor.TaskFunc{}
 	mtx := sync.Mutex{}
 	for _, record := range result.Records {
 		if record.Type != DiffTypeAdd && record.Type != DiffTypeChange {
+			continue
+		}
+
+		if record.Hash == "" {
+			//symbolic link
 			continue
 		}
 
@@ -663,6 +668,7 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 		}
 
 		tasks = append(tasks, task)
+		total++
 	}
 
 	ticker := time.NewTicker(time.Millisecond * 100)
@@ -685,16 +691,32 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 	}
 	fmt.Println()
 
-	// delete and rename
+	// delete, rename, symlink
 	for _, record := range result.Records {
 		switch record.Type {
+		case DiffTypeAdd:
+			if record.Link != "" {
+				symlinkFile(record.Link, filepath.Join(mngr.baseDir, record.Path))
+			}
+		case DiffTypeChange:
+			if record.Link != "" {
+				err := deleteFile(filepath.Join(mngr.baseDir, record.Path))
+				if err != nil {
+					return err
+				}
+
+				err = symlinkFile(record.Link, filepath.Join(mngr.baseDir, record.Path))
+				if err != nil {
+					return err
+				}
+			}
 		case DiffTypeDelete:
-			err := deleteFile(record.Path)
+			err := deleteFile(filepath.Join(mngr.baseDir, record.Path))
 			if err != nil {
 				return err
 			}
 		case DiffTypeRename:
-			err := renameFile(record.OldPath, record.Path)
+			err := renameFile(filepath.Join(mngr.baseDir, record.OldPath), filepath.Join(mngr.baseDir, record.Path))
 			if err != nil {
 				return err
 			}
@@ -878,8 +900,18 @@ func (mngr *ArtifactManager) Diff(option DiffOptions) (DiffResult, error) {
 				}
 			}
 
-			record := DiffRecord{Type: DiffTypeAdd, Path: path, Hash: entry.right.Hash, Size: entry.right.Size}
-			mapAdded[entry.right.Hash] = appendOrMake(mapAdded[entry.right.Hash], record)
+			var key string
+			record := DiffRecord{Type: DiffTypeAdd, Path: path}
+			if entry.right.Link != "" {
+				record.Link = entry.right.Link
+				key = record.Link
+			} else {
+				record.Hash = entry.right.Hash
+				record.Size = entry.right.Size
+				key = record.Hash
+			}
+
+			mapAdded[key] = appendOrMake(mapAdded[key], record)
 		} else if entry.left != nil && entry.right == nil {
 			if option.NoDelete {
 				continue
@@ -891,31 +923,54 @@ func (mngr *ArtifactManager) Diff(option DiffOptions) (DiffResult, error) {
 				}
 			}
 
-			record := DiffRecord{Type: DiffTypeDelete, Path: path, Hash: entry.left.Hash, Size: entry.left.Size}
-			mapDeleted[entry.left.Hash] = appendOrMake(mapDeleted[entry.left.Hash], record)
-		} else if entry.left.Hash != entry.right.Hash {
+			var key string
+			record := DiffRecord{Type: DiffTypeDelete, Path: path}
+			if entry.left.Link != "" {
+				record.Link = entry.left.Link
+				key = record.Link
+			} else {
+				record.Hash = entry.left.Hash
+				record.Size = entry.left.Size
+				key = record.Hash
+			}
+			mapDeleted[key] = appendOrMake(mapDeleted[key], record)
+		} else if entry.left.Hash != entry.right.Hash || entry.left.Link != entry.right.Link {
 			if option.ChangeFilter != nil {
 				if !option.ChangeFilter(path) {
 					continue
 				}
 			}
 
+			var key string
 			record := DiffRecord{
-				Type:    DiffTypeChange,
-				Path:    path,
-				Hash:    entry.right.Hash,
-				Size:    entry.right.Size,
-				OldHash: entry.left.Hash,
-				OldSize: entry.left.Size,
+				Type: DiffTypeChange,
+				Path: path,
 			}
-			mapChanged[entry.left.Hash] = appendOrMake(mapChanged[entry.left.Hash], record)
+
+			if entry.left.Link != "" {
+				record.OldLink = entry.left.Link
+				key = record.OldLink
+			} else {
+				record.OldHash = entry.left.Hash
+				record.OldSize = entry.left.Size
+				key = record.OldHash
+			}
+
+			if entry.right.Link != "" {
+				record.Link = entry.right.Link
+			} else {
+				record.Hash = entry.right.Hash
+				record.Size = entry.right.Size
+			}
+
+			mapChanged[key] = appendOrMake(mapChanged[key], record)
 		}
 	}
 
 	// Step3: Merge "added" and "deleted" with the same content hash to "rename"
 	mapRenamed := map[string][]DiffRecord{}
-	for hash, addedPaths := range mapAdded {
-		deleledPaths := mapDeleted[hash]
+	for key, addedPaths := range mapAdded {
+		deleledPaths := mapDeleted[key]
 		if deleledPaths == nil {
 			continue
 		}
@@ -938,9 +993,9 @@ func (mngr *ArtifactManager) Diff(option DiffOptions) (DiffResult, error) {
 
 			renamedRecords = append(renamedRecords, record)
 		}
-		mapAdded[hash] = addedPaths[n:]
-		mapDeleted[hash] = deleledPaths[n:]
-		mapRenamed[hash] = renamedRecords
+		mapAdded[key] = addedPaths[n:]
+		mapDeleted[key] = deleledPaths[n:]
+		mapRenamed[key] = renamedRecords
 	}
 
 	// Step 4: Merge the the 4 maps to the diff record list

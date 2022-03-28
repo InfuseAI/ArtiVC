@@ -1,6 +1,8 @@
 package core
 
 import (
+	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"testing"
@@ -138,4 +140,28 @@ e
 	assert.Equal(t, "c", string(data))
 	data, _ = readFile(filepath.Join(wp2, "e"))
 	assert.Equal(t, "efg", string(data))
+}
+
+func TestSymlink(t *testing.T) {
+	filepath.Walk("/tmp/symlink/", func(absPath string, info fs.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if info.Mode()&fs.ModeSymlink > 0 {
+			link, err := os.Readlink(absPath)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("symlink: %o %s -> %s\n", info.Mode(), info.Name(), link)
+		} else if info.IsDir() {
+			fmt.Printf("dir: %o %s\n", info.Mode(), info.Name())
+		} else {
+			fmt.Printf("file: %o %s\n", info.Mode(), info.Name())
+		}
+
+		return nil
+	})
+
+	os.Symlink("/tmp/symlink/target", "/tmp/symlink/link")
 }
