@@ -208,6 +208,9 @@ func Test_List(t *testing.T) {
 
 	// ls dir/3
 	list, err = repo.List("dir/3")
+	if err != nil {
+		t.Error(err)
+	}
 	assert.Equal(t, 3, len(list))
 	for _, info := range list {
 		switch info.Name() {
@@ -222,4 +225,10 @@ func Test_List(t *testing.T) {
 		}
 	}
 
+	// ls nono-existing folder
+	list, err = repo.List("dir-12345")
+	if err != nil {
+		t.Error(err)
+	}
+	assert.Equal(t, 0, len(list))
 }

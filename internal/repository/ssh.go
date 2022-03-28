@@ -174,7 +174,7 @@ func (repo *SSHRepository) List(repoPath string) ([]FileInfo, error) {
 
 	out, err := cmd.Output()
 	if err != nil {
-		return entries, err
+		return entries, nil
 	}
 
 	scanner := bufio.NewScanner(bytes.NewReader(out))
