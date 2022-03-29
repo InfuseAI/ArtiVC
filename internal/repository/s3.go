@@ -126,15 +126,18 @@ func (repo *S3Repository) Stat(repoPath string) (FileInfo, error) {
 	}
 
 	return &S3FileInfo{
-		filepath.Base(repoPath),
+		name: filepath.Base(repoPath),
 	}, nil
 }
 
 func (repo *S3Repository) List(repoPath string) ([]FileInfo, error) {
 	fullRepoPath := filepath.Join(repo.BasePath, repoPath)
+	fullRepoPath = fullRepoPath + "/"
+	delimeter := "/"
 	input := &s3.ListObjectsV2Input{
-		Bucket: &repo.Bucket,
-		Prefix: &fullRepoPath,
+		Bucket:    &repo.Bucket,
+		Prefix:    &fullRepoPath,
+		Delimiter: &delimeter,
 	}
 	output, err := repo.client.ListObjectsV2(context.TODO(), input)
 	if err != nil {
@@ -142,24 +145,32 @@ func (repo *S3Repository) List(repoPath string) ([]FileInfo, error) {
 	}
 
 	entries := make([]FileInfo, 0)
+	for _, prefix := range output.CommonPrefixes {
+		fullname := *prefix.Prefix
+		name := fullname[len(fullRepoPath) : len(fullname)-1]
+		entry := S3FileInfo{name: name, isDir: true}
+		entries = append(entries, &entry)
+	}
+
 	for _, obj := range output.Contents {
-		key := *obj.Key
-		entry := S3FileInfo{name: key[len(fullRepoPath)+1:]}
+		fullname := *obj.Key
+		entry := S3FileInfo{name: fullname[len(fullRepoPath):]}
 		entries = append(entries, &entry)
 	}
 	return entries, err
 }
 
 type S3FileInfo struct {
-	name string
+	name  string
+	isDir bool
 }
 
-func (e *S3FileInfo) Name() string {
-	return e.name
+func (fi *S3FileInfo) Name() string {
+	return fi.name
 }
 
-func (e *S3FileInfo) IsDir() bool {
-	return false
+func (fi *S3FileInfo) IsDir() bool {
+	return fi.isDir
 }
 
 type progressReader struct {
