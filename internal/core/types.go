@@ -2,6 +2,7 @@ package core
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -15,7 +16,8 @@ const (
 
 type BlobMetaData struct {
 	Path string      `json:"path"`
-	Hash string      `json:"hash"`
+	Hash string      `json:"hash,omitempty"`
+	Link string      `json:"link,omitempty"`
 	Mode fs.FileMode `json:"mode"`
 	Size int64       `json:"size"`
 }
@@ -69,11 +71,15 @@ const (
 type DiffRecord struct {
 	Type    DiffType
 	Hash    string
+	Link    string
 	Path    string
 	Size    int64
+	Mode    fs.FileMode
 	OldPath string
+	OldLink string
 	OldHash string
 	OldSize int64
+	OldMode fs.FileMode
 }
 
 type DiffResult struct {
@@ -92,19 +98,34 @@ type BlobUploadResult struct {
 
 func MakeBlobMetadata(baseDir string, path string) (BlobMetaData, error) {
 	fullPath := filepath.Join(baseDir, path)
-	hash, _ := Sha1SumFromFile(fullPath)
-	fi, err := os.Stat(fullPath)
+	info, err := os.Lstat(fullPath)
 	if err != nil {
 		return BlobMetaData{}, err
 	}
 
-	metaData := BlobMetaData{
-		Path: path,
-		Hash: hash,
-		Mode: fi.Mode(),
-		Size: fi.Size(),
+	if info.Mode()&fs.ModeSymlink != 0 {
+		link, err := os.Readlink(fullPath)
+		if err != nil {
+			return BlobMetaData{}, err
+		}
+
+		return BlobMetaData{
+			Path: path,
+			Link: link,
+			Mode: 0,
+		}, nil
+	} else if info.Mode().IsRegular() {
+		hash, _ := Sha1SumFromFile(fullPath)
+		return BlobMetaData{
+			Path: path,
+			Hash: hash,
+			Mode: info.Mode().Perm(),
+			Size: info.Size(),
+		}, nil
+	} else {
+		fmt.Printf("%s %s\n", info.Mode(), info.Name())
+		return BlobMetaData{}, os.ErrInvalid
 	}
-	return metaData, nil
 }
 
 func MakeCommitMetadata(commit *Commit) ([]byte, string) {

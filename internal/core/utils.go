@@ -77,6 +77,15 @@ func readFile(src string) ([]byte, error) {
 	return ioutil.ReadFile(src)
 }
 
+func readFileMode(src string) (fs.FileMode, error) {
+	info, err := os.Lstat(src)
+	if err != nil {
+		return 0, err
+	}
+
+	return info.Mode(), err
+}
+
 func writeGzipFile(content []byte, dst string) error {
 	err := os.MkdirAll(filepath.Dir(dst), fs.ModePerm)
 	if err != nil {
@@ -118,4 +127,16 @@ func renameFile(src, dst string) error {
 	}
 
 	return os.Rename(src, dst)
+}
+
+func symlinkFile(target, src string) error {
+	return os.Symlink(target, src)
+}
+
+func readlinkFile(src string) (string, error) {
+	return os.Readlink(src)
+}
+
+func chmod(src string, mode fs.FileMode) error {
+	return os.Chmod(src, mode)
 }
