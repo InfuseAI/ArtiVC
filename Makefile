@@ -23,5 +23,8 @@ build:
 test:
 	go test ./...
 
+integration-test:
+	go test -v ./internal/repository
+
 doc-server:
 	make -C docs/ start
