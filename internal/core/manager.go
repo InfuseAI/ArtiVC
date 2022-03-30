@@ -17,6 +17,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/infuseai/artivc/internal/executor"
+	"github.com/infuseai/artivc/internal/log"
 	"github.com/infuseai/artivc/internal/repository"
 )
 
@@ -72,16 +73,25 @@ func (mngr *ArtifactManager) UploadBlob(localPath, hash string, meter *repositor
 	if checkSkip {
 		_, err := mngr.repo.Stat(repoPath)
 		if err == nil {
+			log.Debugf("skip: %s\n", repoPath)
 			return BlobUploadResult{Skip: true}, nil
 		}
 	}
 
 	blobPath := filepath.Join(mngr.baseDir, localPath)
-	err := mngr.repo.Upload(blobPath, repoPath, meter)
+	err := mngr.Upload(blobPath, repoPath, meter)
 	return BlobUploadResult{Skip: false}, err
 }
 
+func (mngr *ArtifactManager) Upload(localPath, repoPath string, meter *repository.Meter) error {
+	log.Debugf("upload: %s -> %s\n", localPath, repoPath)
+
+	return mngr.repo.Upload(localPath, repoPath, meter)
+}
+
 func (mngr *ArtifactManager) Download(repoPath, localPath, tmpDir string, meter *repository.Meter) error {
+	log.Debugf("download: %s <- %s\n", localPath, repoPath)
+
 	// Copy from repo to tmp
 	err := os.MkdirAll(tmpDir, fs.ModePerm)
 	if err != nil {
@@ -147,7 +157,7 @@ func (mngr *ArtifactManager) Commit(commit Commit) error {
 		return err
 	}
 
-	err = mngr.repo.Upload(localPath, commitPath, nil)
+	err = mngr.Upload(localPath, commitPath, nil)
 	if err != nil {
 		return err
 	}
@@ -163,7 +173,7 @@ func (mngr *ArtifactManager) AddRef(ref string, commit string) error {
 		return err
 	}
 
-	err = mngr.repo.Upload(localPath, refPath, nil)
+	err = mngr.Upload(localPath, refPath, nil)
 	if err != nil {
 		return err
 	}
@@ -295,6 +305,7 @@ func (mngr *ArtifactManager) FindCommitOrReference(refOrCommit string) (string, 
 
 // Fetch downloads all the metadata from repository
 func (mngr *ArtifactManager) Fetch() error {
+	log.Debugln("fetch the repository metadata")
 	// fetch latest
 	mngr.GetRef(RefLatest)
 
@@ -566,6 +577,7 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 	}
 
 	// Make the remote commit
+	log.Debugln("get the remote commit")
 	commitHash, err := mngr.FindCommitOrReference(refOrCommit)
 	if err != nil {
 		var refPath string
@@ -590,6 +602,7 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 	}
 
 	// Get the local commit hash
+	log.Debugln("make the local commit")
 	avcIgnore, err := NewAvcIgnore(mngr.baseDir)
 	avcIgnoreFilter := func(path string) bool {
 		return true
@@ -614,6 +627,7 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 	}
 
 	// Diff
+	log.Debugln("diff")
 	result, err := mngr.Diff(DiffOptions{
 		NoDelete:      !options.Delete,
 		LeftCommit:    commitLocal,
@@ -633,6 +647,7 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 	}
 
 	// download
+	log.Debugln("download")
 	total := 0
 	downloaded := 0
 
@@ -697,6 +712,7 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 	fmt.Println()
 
 	// delete, rename, symlink, chmod
+	log.Debugln("delete, rename, symlink, chmod")
 	for _, record := range result.Records {
 		absPath := filepath.Join(mngr.baseDir, record.Path)
 		mode := record.Mode

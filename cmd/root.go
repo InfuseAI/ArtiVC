@@ -3,8 +3,11 @@ package cmd
 import (
 	"os"
 
+	"github.com/infuseai/artivc/internal/log"
 	"github.com/spf13/cobra"
 )
+
+var debug bool
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -27,6 +30,9 @@ var rootCmd = &cobra.Command{
   avc <command> -h
 
   For more information, please check https://github.com/infuseai/artivc`,
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		log.SetDebug(debug)
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -40,6 +46,8 @@ func Execute() {
 
 func init() {
 	cobra.EnableCommandSorting = false
+	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "enable the debug message")
+
 	rootCmd.SetUsageTemplate(usageTemplate)
 
 	addCommandWithGroup(GROUP_QUICK,
