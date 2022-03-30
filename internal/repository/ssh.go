@@ -6,10 +6,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/infuseai/artivc/internal/executor"
 )
@@ -26,6 +28,7 @@ func NewSSHRepository(host, basePath string) (*SSHRepository, error) {
 	if err != nil {
 		return nil, err
 	}
+	rand.Seed(time.Now().UnixNano())
 
 	return &SSHRepository{
 		Host:    host,
@@ -35,18 +38,40 @@ func NewSSHRepository(host, basePath string) (*SSHRepository, error) {
 
 func (repo *SSHRepository) Upload(localPath, repoPath string, m *Meter) error {
 	path := filepath.Join(repo.BaseDir, repoPath)
-	script := `
+	tmpPath := filepath.Join(repo.BaseDir, "tmp", fmt.Sprintf("%d", (rand.Int()%100000000)))
+	info, err := os.Stat(localPath)
+	if err != nil {
+		return err
+	}
+
+	script := `	
+#!/bin/sh
+
 set -e
-mkdir -p ${DEST_DIR}
-cat > ${DEST_PATH}
+trap "rm -f ${TMP_PATH}" EXIT
+
+mkdir -p ${TMP_DIR}
+cat > ${TMP_PATH}
+SIZE=$(ls -l ${TMP_PATH} | awk {'print $5'})
+if [  "${SIZE}" == "${FILE_SIZE}" ]; then
+	mkdir -p ${DEST_DIR}
+	mv ${TMP_PATH} ${DEST_PATH}
+fi
 `
 	expandMap := map[string]string{
 		"DEST_DIR":  filepath.Dir(path),
 		"DEST_PATH": path,
+		"TMP_DIR":   filepath.Dir(tmpPath),
+		"TMP_PATH":  tmpPath,
+		"FILE_SIZE": fmt.Sprintf("%d", info.Size()),
 	}
 
 	script = os.Expand(script, func(k string) string {
-		return expandMap[k]
+		if value, ok := expandMap[k]; ok {
+			return value
+		} else {
+			return "$" + k
+		}
 	})
 
 	cmd := repo.rcommand(script)
