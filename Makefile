@@ -26,5 +26,6 @@ test:
 integration-test:
 	go test -v ./internal/repository
 
+.PHONY: doc-server
 doc-server:
 	make -C docs/ start
