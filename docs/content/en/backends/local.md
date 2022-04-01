@@ -3,7 +3,7 @@ title: Local Filesystem
 weight: 1
 ---
 
-The local filesystem repository uses a folder of local fileysystem as the repository. The folder can reside in a local disk or a mounted NFS.
+Use the local filesystem as the repository backend. The folder can reside in a local disk or a mounted NFS.
 
 ## Usage
 Init a workspace

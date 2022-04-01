@@ -1,12 +1,12 @@
 ---
-title: SSH
-weight: 40
+title: Remote Filesystem (SSH)
+weight: 2
 ---
 
-The SSH repository allows you to use the file system of a remote ssh server as a repository. Under the hood, it uses the `ssh` command to communicate with remote.
+Use remote filesystem through SSH as the repository backend.
 
 ## Configuration
-To use SSH repository, you have to configure `~/.ssh/config`.  
+To use SSH backend, you have to configure `~/.ssh/config`.  
 
 1. Check `ssh` command is available
 
