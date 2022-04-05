@@ -10,6 +10,19 @@ type FileInfo interface {
 	IsDir() bool
 }
 
+type SimpleFileInfo struct {
+	name  string
+	isDir bool
+}
+
+func (fi *SimpleFileInfo) Name() string {
+	return fi.name
+}
+
+func (fi *SimpleFileInfo) IsDir() bool {
+	return fi.isDir
+}
+
 type Repository interface {
 	Upload(localPath, repoPath string, meter *Meter) error
 	Download(repoPath, localPath string, meter *Meter) error

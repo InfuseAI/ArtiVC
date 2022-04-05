@@ -1,116 +1,135 @@
 package repository
 
 import (
-	"bufio"
-	"bytes"
-	"context"
-	"errors"
 	"fmt"
 	"math/rand"
+	"net"
 	"os"
-	"os/exec"
+	"path"
 	"path/filepath"
-	"strings"
 	"time"
 
-	"github.com/infuseai/artivc/internal/executor"
+	"github.com/kevinburke/ssh_config"
+	"github.com/pkg/sftp"
+	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/agent"
 )
 
 // Local Filesystem
 type SSHRepository struct {
-	Host    string
-	BaseDir string
+	Host       string
+	BaseDir    string
+	SSHClient  *ssh.Client
+	SFTPClient *sftp.Client
 }
 
 func NewSSHRepository(host, basePath string) (*SSHRepository, error) {
-	cmd := exec.Command("ssh", "-V")
-	err := cmd.Run()
+	authMethods := []ssh.AuthMethod{}
+
+	agentSock := os.Getenv("SSH_AUTH_SOCK")
+	if agentSock != "" {
+		agentConn, err := net.Dial("unix", agentSock)
+		if err != nil {
+			return nil, err
+		}
+
+		agentClient := agent.NewClient(agentConn)
+		authMethods = append(authMethods, ssh.PublicKeysCallback(agentClient.Signers))
+	}
+
+	// load ssh config
+	f, err := os.Open(filepath.Join(os.Getenv("HOME"), ".ssh", "config"))
 	if err != nil {
 		return nil, err
 	}
+	cfg, err := ssh_config.Decode(f)
+	if err != nil {
+		return nil, err
+	}
+
+	hostname, _ := cfg.Get(host, "Hostname")
+	port, _ := cfg.Get(host, "Port")
+	user, _ := cfg.Get(host, "User")
+
+	config := &ssh.ClientConfig{
+		User:            user,
+		Auth:            authMethods,
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+	}
+
+	// setup the ssh client and sftp client
+	sshClient, err := ssh.Dial("tcp", fmt.Sprintf("%s:%s", hostname, port), config)
+	if err != nil {
+		return nil, err
+	}
+
+	sftpClient, err := sftp.NewClient(sshClient)
+	if err != nil {
+		return nil, err
+	}
+
 	rand.Seed(time.Now().UnixNano())
 
 	return &SSHRepository{
-		Host:    host,
-		BaseDir: basePath,
+		Host:       host,
+		BaseDir:    basePath,
+		SSHClient:  sshClient,
+		SFTPClient: sftpClient,
 	}, nil
 }
 
 func (repo *SSHRepository) Upload(localPath, repoPath string, m *Meter) error {
-	path := filepath.Join(repo.BaseDir, repoPath)
+	client := repo.SFTPClient
+
+	sourceFileStat, err := os.Stat(localPath)
+	if err != nil {
+		return err
+	}
+
+	if !sourceFileStat.Mode().IsRegular() {
+		return fmt.Errorf("%s is not a regular file", localPath)
+	}
+
+	source, err := os.Open(localPath)
+	if err != nil {
+		return err
+	}
+	defer source.Close()
+
+	// Copy from source to tmp
+	tmpDir := path.Join(repo.BaseDir, "tmp")
+	err = client.MkdirAll(tmpDir)
+	if err != nil {
+		return err
+	}
+
 	tmpPath := filepath.Join(repo.BaseDir, "tmp", fmt.Sprintf("%d", (rand.Int()%100000000)))
-	info, err := os.Stat(localPath)
+	tmp, err := client.Create(tmpPath)
+	if err != nil {
+		return err
+	}
+	defer client.Remove(tmpPath)
+	_, err = CopyWithMeter(tmp, source, m)
+	if err != nil {
+		return err
+	}
+	err = tmp.Close()
 	if err != nil {
 		return err
 	}
 
-	script := `	
-#!/bin/sh
-
-set -e
-trap "rm -f ${TMP_PATH}" EXIT
-
-mkdir -p ${TMP_DIR}
-cat > ${TMP_PATH}
-SIZE=$(ls -l ${TMP_PATH} | awk {'print $5'})
-if [  "${SIZE}" == "${FILE_SIZE}" ]; then
-	mkdir -p ${DEST_DIR}
-	mv ${TMP_PATH} ${DEST_PATH}
-fi
-`
-	expandMap := map[string]string{
-		"DEST_DIR":  filepath.Dir(path),
-		"DEST_PATH": path,
-		"TMP_DIR":   filepath.Dir(tmpPath),
-		"TMP_PATH":  tmpPath,
-		"FILE_SIZE": fmt.Sprintf("%d", info.Size()),
-	}
-
-	script = os.Expand(script, func(k string) string {
-		if value, ok := expandMap[k]; ok {
-			return value
-		} else {
-			return "$" + k
-		}
-	})
-
-	cmd := repo.rcommand(script)
-
-	src, err := os.Open(localPath)
+	// Move from tmp to dest
+	destPath := path.Join(repo.BaseDir, repoPath)
+	err = client.MkdirAll(filepath.Dir(destPath))
 	if err != nil {
 		return err
 	}
-	defer src.Close()
-
-	dest, err := cmd.StdinPipe()
-	if err != nil {
+	err = client.Remove(destPath)
+	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
 
-	taskLocal := func(ctx context.Context) error {
-		_, err := CopyWithMeter(dest, src, m)
-		if err != nil {
-			return err
-		}
-
-		src.Close()
-		dest.Close()
-
-		return nil
-	}
-
-	taskRemote := func(ctx context.Context) error {
-		var stderr = bytes.Buffer{}
-		cmd.Stderr = &stderr
-		err = cmd.Run()
-		if err != nil {
-			return errors.New(stderr.String())
-		}
-
-		return nil
-	}
-
-	err = executor.ExecuteAll(2, taskLocal, taskRemote)
+	err = client.Rename(tmpPath, destPath)
 	if err != nil {
 		return err
 	}
@@ -119,139 +138,57 @@ fi
 }
 
 func (repo *SSHRepository) Download(repoPath, localPath string, m *Meter) error {
-	path := filepath.Join(repo.BaseDir, repoPath)
-	cmd := repo.rcommand(fmt.Sprintf("cat %s", path))
+	client := repo.SFTPClient
 
-	src, err := cmd.StdoutPipe()
+	srcPath := path.Join(repo.BaseDir, repoPath)
+	src, err := client.Open(srcPath)
 	if err != nil {
 		return err
 	}
+	defer src.Close()
 
 	dest, err := os.Create(localPath)
 	if err != nil {
 		return err
 	}
 	defer dest.Close()
-
-	taskLocal := func(ctx context.Context) error {
-		_, err = CopyWithMeter(dest, src, m)
-		if err != nil {
-			return err
-		}
-
-		dest.Close()
-		src.Close()
-
-		return nil
-	}
-
-	taskRemote := func(ctx context.Context) error {
-		var stderr bytes.Buffer
-		cmd.Stderr = &stderr
-		err = cmd.Run()
-		if err != nil {
-			return errors.New(stderr.String())
-		}
-
-		return nil
-	}
-
-	err = executor.ExecuteAll(2, taskLocal, taskRemote)
+	written, err := CopyWithMeter(dest, src, m)
 	if err != nil {
 		return err
 	}
 
-	return nil
+	if written == 0 {
+		err = os.Truncate(localPath, 0)
+	}
+
+	return err
 }
 
 func (repo *SSHRepository) Delete(repoPath string) error {
-	path := filepath.Join(repo.BaseDir, repoPath)
-	cmd := repo.rcommand("rm " + path)
-	_, err := cmd.Output()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	filePath := path.Join(repo.BaseDir, repoPath)
+	return repo.SFTPClient.Remove(filePath)
 }
 
 func (repo *SSHRepository) Stat(repoPath string) (FileInfo, error) {
-	path := filepath.Join(repo.BaseDir, repoPath)
-	cmd := repo.rcommand("ls -ald " + path)
-	out, err := cmd.Output()
-	if err != nil {
-		return nil, err
-	}
-
-	result, err := sshParseListRecord(string(out))
-	if err != nil {
-		return nil, err
-	}
-	result.name = filepath.Base(repoPath)
-
-	return result, nil
+	filePath := path.Join(repo.BaseDir, repoPath)
+	return repo.SFTPClient.Stat(filePath)
 }
 
 func (repo *SSHRepository) List(repoPath string) ([]FileInfo, error) {
-	entries := make([]FileInfo, 0)
-	path := filepath.Join(repo.BaseDir, repoPath)
-	cmd := repo.rcommand("ls -al " + path)
+	client := repo.SFTPClient
 
-	out, err := cmd.Output()
+	dir := path.Join(repo.BaseDir, repoPath)
+	fs, err := client.ReadDir(dir)
 	if err != nil {
-		return entries, nil
+		return []FileInfo{}, nil
 	}
+	fs2 := []FileInfo{}
 
-	scanner := bufio.NewScanner(bytes.NewReader(out))
-	for scanner.Scan() {
-		if strings.HasPrefix(scanner.Text(), "total") {
-			continue
+	for _, info := range fs {
+		info2, ok := info.(FileInfo)
+		if ok {
+			fs2 = append(fs2, info2)
 		}
-
-		info, err := sshParseListRecord(scanner.Text())
-		if err != nil {
-			return nil, err
-		}
-
-		if info.Name() == "." || info.Name() == ".." {
-			continue
-		}
-		entries = append(entries, info)
 	}
-	if err := scanner.Err(); err != nil {
-		return entries, err
-	}
-
-	return entries, nil
-}
-
-func (repo *SSHRepository) rcommand(script string) *exec.Cmd {
-	return exec.Command("ssh", repo.Host, script)
-}
-
-func sshParseListRecord(record string) (SSHFileInfo, error) {
-	components := strings.Split(record, " ")
-	if len(components) < 7 {
-		return SSHFileInfo{}, os.ErrInvalid
-	}
-
-	mode := components[0]
-	name := components[len(components)-1]
-	return SSHFileInfo{
-		name:  name,
-		isDir: mode[0] == 'd',
-	}, nil
-}
-
-type SSHFileInfo struct {
-	name  string
-	isDir bool
-}
-
-func (e SSHFileInfo) Name() string {
-	return e.name
-}
-
-func (e SSHFileInfo) IsDir() bool {
-	return e.isDir
+	return fs2, nil
 }
