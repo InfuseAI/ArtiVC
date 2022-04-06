@@ -6,9 +6,10 @@ import (
 	"math/rand"
 	"net"
 	"os"
-	"os/user"
+	osuser "os/user"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -21,7 +22,6 @@ import (
 
 // Local Filesystem
 type SSHRepository struct {
-	Host       string
 	BaseDir    string
 	SSHClient  *ssh.Client
 	SFTPClient *sftp.Client
@@ -29,36 +29,68 @@ type SSHRepository struct {
 
 func normalizeKeyPath(path string) string {
 	if path == "~" {
-		usr, _ := user.Current()
+		usr, _ := osuser.Current()
 		return usr.HomeDir
 	} else if strings.HasPrefix(path, "~/") {
-		usr, _ := user.Current()
+		usr, _ := osuser.Current()
 		return filepath.Join(usr.HomeDir, path[2:])
 	} else {
 		return path
 	}
 }
 
-func NewSSHRepository(host, basePath string) (*SSHRepository, error) {
+func NewSSHRepository(hostname, basePath string) (*SSHRepository, error) {
+	currentUser, err := osuser.Current()
+	if err != nil {
+		return nil, err
+	}
+
+	user := currentUser.Username
+	port := 22
 
 	explictSigners := []ssh.Signer{}
-	var agentClient agent.ExtendedAgent
 
-	authPublickey := ssh.PublicKeysCallback(func() (signers []ssh.Signer, err error) {
-		if agentClient == nil {
-			return explictSigners, nil
-		}
-
-		agentSigners, err := agentClient.Signers()
+	// ssh config
+	f, err := os.Open(filepath.Join(os.Getenv("HOME"), ".ssh", "config"))
+	if err == nil {
+		cfg, err := ssh_config.Decode(f)
 		if err != nil {
-			return agentSigners, err
+			return nil, err
 		}
-		return append(agentSigners, explictSigners...), nil
-	})
 
-	authMethods := []ssh.AuthMethod{authPublickey}
-	agentSock := os.Getenv("SSH_AUTH_SOCK")
-	if agentSock != "" {
+		alias := hostname
+		if value, err := cfg.Get(alias, "Hostname"); err == nil {
+			hostname = value
+		}
+
+		if value, err := cfg.Get(alias, "Port"); err == nil {
+			port, err = strconv.Atoi(value)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		if value, err := cfg.Get(alias, "User"); err == nil {
+			user = value
+		}
+
+		if identifierFiles, err := cfg.GetAll(alias, "IdentityFile"); err == nil {
+			for _, identityFile := range identifierFiles {
+				signer, err := sshLoadIdentifyFile(identityFile)
+				if err != nil {
+					log.Debugf("cannot parse key %s: %s", identityFile, err.Error())
+					continue
+				}
+
+				log.Debugln("Add identify file explict: " + identityFile)
+				explictSigners = append(explictSigners, signer)
+			}
+		}
+	}
+
+	// SSH Agent
+	var agentClient agent.ExtendedAgent
+	if agentSock := os.Getenv("SSH_AUTH_SOCK"); agentSock != "" {
 		agentConn, err := net.Dial("unix", agentSock)
 		if err != nil {
 			return nil, err
@@ -66,56 +98,47 @@ func NewSSHRepository(host, basePath string) (*SSHRepository, error) {
 		agentClient = agent.NewClient(agentConn)
 	}
 
-	// load ssh config
-	f, err := os.Open(filepath.Join(os.Getenv("HOME"), ".ssh", "config"))
-	if err != nil {
-		return nil, err
-	}
-	cfg, err := ssh_config.Decode(f)
-	if err != nil {
-		return nil, err
+	// Auth method: Password
+	authMethods := []ssh.AuthMethod{}
+	if password := os.Getenv("SSH_PASSWORD"); password != "" {
+		authMethods = append(authMethods, ssh.Password(password))
 	}
 
-	hostname, _ := cfg.Get(host, "Hostname")
-	port, _ := cfg.Get(host, "Port")
-	user, _ := cfg.Get(host, "User")
-	identifierFiles, _ := cfg.GetAll(host, "IdentityFile")
-	passphrase := os.Getenv("SSH_KEY_PASSPHRASE")
-	fmt.Println(user)
-
-	for _, identityFile := range identifierFiles {
-		key, err := ioutil.ReadFile(normalizeKeyPath(identityFile))
+	// Auth method: Public Keys
+	if identityFile := os.Getenv("SSH_IDENTIFY_FILE"); identityFile != "" {
+		signer, err := sshLoadIdentifyFile(identityFile)
 		if err != nil {
-			log.Debugf("cannot parse key %s: %s", identityFile, err.Error())
-			continue
+			return nil, err
 		}
 
-		var signer ssh.Signer
-		if passphrase == "" {
-			signer, err = ssh.ParsePrivateKey(key)
-			if err != nil {
-				log.Debugf("cannot parse key %s: %s", identityFile, err.Error())
-				continue
-			}
-		} else {
-			signer, err = ssh.ParsePrivateKeyWithPassphrase(key, []byte(passphrase))
-			if err != nil {
-				log.Debugf("cannot parse key %s: %s", identityFile, err.Error())
-				continue
-			}
-		}
-
+		log.Debugln("Add identify file explict: " + identityFile)
 		explictSigners = append(explictSigners, signer)
 	}
 
-	config := &ssh.ClientConfig{
-		User:            user,
-		Auth:            authMethods,
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+	if agentClient != nil || len(explictSigners) > 0 {
+		authPublickey := ssh.PublicKeysCallback(func() (signers []ssh.Signer, err error) {
+			if agentClient == nil {
+				return explictSigners, nil
+			}
+
+			agentSigners, err := agentClient.Signers()
+			if err != nil {
+				log.Debug("request signers from agent failed: " + err.Error())
+				return explictSigners, nil
+			}
+
+			return append(agentSigners, explictSigners...), nil
+		})
+
+		authMethods = append(authMethods, authPublickey)
 	}
 
 	// setup the ssh client and sftp client
-	sshClient, err := ssh.Dial("tcp", fmt.Sprintf("%s:%s", hostname, port), config)
+	sshClient, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", hostname, port), &ssh.ClientConfig{
+		User:            user,
+		Auth:            authMethods,
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -127,11 +150,32 @@ func NewSSHRepository(host, basePath string) (*SSHRepository, error) {
 
 	rand.Seed(time.Now().UnixNano())
 	return &SSHRepository{
-		Host:       host,
 		BaseDir:    basePath,
 		SSHClient:  sshClient,
 		SFTPClient: sftpClient,
 	}, nil
+}
+
+func sshLoadIdentifyFile(identityFile string) (ssh.Signer, error) {
+	key, err := ioutil.ReadFile(normalizeKeyPath(identityFile))
+	if err != nil {
+		return nil, err
+	}
+
+	var signer ssh.Signer
+	passphrase := os.Getenv("SSH_KEY_PASSPHRASE")
+	if passphrase == "" {
+		signer, err = ssh.ParsePrivateKey(key)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		signer, err = ssh.ParsePrivateKeyWithPassphrase(key, []byte(passphrase))
+		if err != nil {
+			return nil, err
+		}
+	}
+	return signer, nil
 }
 
 func (repo *SSHRepository) Upload(localPath, repoPath string, m *Meter) error {
