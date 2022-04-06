@@ -18,6 +18,7 @@ import (
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
+	"golang.org/x/crypto/ssh/knownhosts"
 )
 
 // Local Filesystem
@@ -47,11 +48,12 @@ func NewSSHRepository(hostname, basePath string) (*SSHRepository, error) {
 
 	user := currentUser.Username
 	port := 22
+	strictHostKeyChecking := true
 
 	explictSigners := []ssh.Signer{}
 
-	// ssh config
-	f, err := os.Open(filepath.Join(os.Getenv("HOME"), ".ssh", "config"))
+	// Load ~/.ssh/config
+	f, err := os.Open(filepath.Join(currentUser.HomeDir, ".ssh", "config"))
 	if err == nil {
 		cfg, err := ssh_config.Decode(f)
 		if err != nil {
@@ -74,6 +76,12 @@ func NewSSHRepository(hostname, basePath string) (*SSHRepository, error) {
 			user = value
 		}
 
+		if value, err := cfg.Get(alias, "StrictHostKeyChecking"); err == nil {
+			if value == "no" {
+				strictHostKeyChecking = false
+			}
+		}
+
 		if identifierFiles, err := cfg.GetAll(alias, "IdentityFile"); err == nil {
 			for _, identityFile := range identifierFiles {
 				signer, err := sshLoadIdentifyFile(identityFile)
@@ -82,36 +90,82 @@ func NewSSHRepository(hostname, basePath string) (*SSHRepository, error) {
 					continue
 				}
 
-				log.Debugln("Add identify file explict: " + identityFile)
+				log.Debugln("Add identify file from config: " + identityFile)
 				explictSigners = append(explictSigners, signer)
 			}
 		}
 	}
 
-	// SSH Agent
-	var agentClient agent.ExtendedAgent
-	if agentSock := os.Getenv("SSH_AUTH_SOCK"); agentSock != "" {
-		agentConn, err := net.Dial("unix", agentSock)
-		if err != nil {
-			return nil, err
+	// host key callbacks: knownhosts
+	if value := os.Getenv("SSH_SRTICT_HOST_KEY_CHECKING"); value != "" {
+		if value == "no" {
+			strictHostKeyChecking = false
+		} else if value == "yes" {
+			strictHostKeyChecking = true
 		}
-		agentClient = agent.NewClient(agentConn)
 	}
 
-	// Auth method: Password
+	hostkeyCallback := ssh.InsecureIgnoreHostKey()
+	if strictHostKeyChecking {
+		knownHostFile := filepath.Join(currentUser.HomeDir, ".ssh", "known_hosts")
+		log.Debug("check known hosts by file " + knownHostFile)
+		if knownhostCallback, err := knownhosts.New(knownHostFile); err != nil {
+			log.Debug("cannot load knownhost file: " + err.Error())
+		} else {
+			hostkeyCallback = func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+				if tcpAddr, ok := remote.(*net.TCPAddr); ok {
+					if tcpAddr.IP.IsLoopback() {
+						log.Debugln("loopback network. Skip the knownhost check")
+						return nil
+					}
+				}
+
+				return knownhostCallback(hostname, remote, key)
+			}
+		}
+	} else {
+		log.Debug("skip the known hosts check")
+	}
+
+	if value := os.Getenv("SSH_USER"); value != "" {
+		user = value
+	}
+
+	if value := os.Getenv("SSH_PORT"); value != "" {
+		port, err = strconv.Atoi(value)
+		if err != nil {
+			return nil, fmt.Errorf("cannot parse SSH_PORT: %s", err.Error())
+		}
+	}
+
+	// ssh agent
+	var agentClient agent.ExtendedAgent
+	if agentSock := os.Getenv("SSH_AUTH_SOCK"); agentSock != "" {
+		log.Debugln("ssh agent found")
+		agentConn, err := net.Dial("unix", agentSock)
+		if err != nil {
+			log.Debugln("cannot open ssh agent connection")
+			agentConn = nil
+		} else {
+			agentClient = agent.NewClient(agentConn)
+		}
+	}
+
+	// auth method: Password
 	authMethods := []ssh.AuthMethod{}
 	if password := os.Getenv("SSH_PASSWORD"); password != "" {
+		log.Debugln("add password authentication from env")
 		authMethods = append(authMethods, ssh.Password(password))
 	}
 
-	// Auth method: Public Keys
-	if identityFile := os.Getenv("SSH_IDENTIFY_FILE"); identityFile != "" {
+	// auth method: Public Keys
+	if identityFile := os.Getenv("SSH_IDENTITY_FILE"); identityFile != "" {
 		signer, err := sshLoadIdentifyFile(identityFile)
 		if err != nil {
 			return nil, err
 		}
 
-		log.Debugln("Add identify file explict: " + identityFile)
+		log.Debugln("add identify file from env: " + identityFile)
 		explictSigners = append(explictSigners, signer)
 	}
 
@@ -134,10 +188,11 @@ func NewSSHRepository(hostname, basePath string) (*SSHRepository, error) {
 	}
 
 	// setup the ssh client and sftp client
+	log.Debugf("connect to %s@%s:%s at port %d", user, hostname, basePath, port)
 	sshClient, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", hostname, port), &ssh.ClientConfig{
 		User:            user,
 		Auth:            authMethods,
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		HostKeyCallback: hostkeyCallback,
 	})
 	if err != nil {
 		return nil, err
