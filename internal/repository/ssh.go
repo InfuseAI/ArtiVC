@@ -2,13 +2,17 @@ package repository
 
 import (
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"net"
 	"os"
+	"os/user"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
 
+	"github.com/infuseai/artivc/internal/log"
 	"github.com/kevinburke/ssh_config"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
@@ -23,18 +27,43 @@ type SSHRepository struct {
 	SFTPClient *sftp.Client
 }
 
-func NewSSHRepository(host, basePath string) (*SSHRepository, error) {
-	authMethods := []ssh.AuthMethod{}
+func normalizeKeyPath(path string) string {
+	if path == "~" {
+		usr, _ := user.Current()
+		return usr.HomeDir
+	} else if strings.HasPrefix(path, "~/") {
+		usr, _ := user.Current()
+		return filepath.Join(usr.HomeDir, path[2:])
+	} else {
+		return path
+	}
+}
 
+func NewSSHRepository(host, basePath string) (*SSHRepository, error) {
+
+	explictSigners := []ssh.Signer{}
+	var agentClient agent.ExtendedAgent
+
+	authPublickey := ssh.PublicKeysCallback(func() (signers []ssh.Signer, err error) {
+		if agentClient == nil {
+			return explictSigners, nil
+		}
+
+		agentSigners, err := agentClient.Signers()
+		if err != nil {
+			return agentSigners, err
+		}
+		return append(agentSigners, explictSigners...), nil
+	})
+
+	authMethods := []ssh.AuthMethod{authPublickey}
 	agentSock := os.Getenv("SSH_AUTH_SOCK")
 	if agentSock != "" {
 		agentConn, err := net.Dial("unix", agentSock)
 		if err != nil {
 			return nil, err
 		}
-
-		agentClient := agent.NewClient(agentConn)
-		authMethods = append(authMethods, ssh.PublicKeysCallback(agentClient.Signers))
+		agentClient = agent.NewClient(agentConn)
 	}
 
 	// load ssh config
@@ -50,6 +79,34 @@ func NewSSHRepository(host, basePath string) (*SSHRepository, error) {
 	hostname, _ := cfg.Get(host, "Hostname")
 	port, _ := cfg.Get(host, "Port")
 	user, _ := cfg.Get(host, "User")
+	identifierFiles, _ := cfg.GetAll(host, "IdentityFile")
+	passphrase := os.Getenv("SSH_KEY_PASSPHRASE")
+	fmt.Println(user)
+
+	for _, identityFile := range identifierFiles {
+		key, err := ioutil.ReadFile(normalizeKeyPath(identityFile))
+		if err != nil {
+			log.Debugf("cannot parse key %s: %s", identityFile, err.Error())
+			continue
+		}
+
+		var signer ssh.Signer
+		if passphrase == "" {
+			signer, err = ssh.ParsePrivateKey(key)
+			if err != nil {
+				log.Debugf("cannot parse key %s: %s", identityFile, err.Error())
+				continue
+			}
+		} else {
+			signer, err = ssh.ParsePrivateKeyWithPassphrase(key, []byte(passphrase))
+			if err != nil {
+				log.Debugf("cannot parse key %s: %s", identityFile, err.Error())
+				continue
+			}
+		}
+
+		explictSigners = append(explictSigners, signer)
+	}
 
 	config := &ssh.ClientConfig{
 		User:            user,
