@@ -63,13 +63,12 @@ func NewSSHRepository(host, basePath string) (*SSHRepository, error) {
 		return nil, err
 	}
 
-	sftpClient, err := sftp.NewClient(sshClient)
+	sftpClient, err := sftp.NewClient(sshClient, sftp.UseConcurrentReads(true), sftp.UseConcurrentWrites(true))
 	if err != nil {
 		return nil, err
 	}
 
 	rand.Seed(time.Now().UnixNano())
-
 	return &SSHRepository{
 		Host:       host,
 		BaseDir:    basePath,
@@ -109,10 +108,12 @@ func (repo *SSHRepository) Upload(localPath, repoPath string, m *Meter) error {
 		return err
 	}
 	defer client.Remove(tmpPath)
-	_, err = CopyWithMeter(tmp, source, m)
+
+	_, err = tmp.ReadFrom(&sshFileWrapper{file: source, meter: m})
 	if err != nil {
 		return err
 	}
+
 	err = tmp.Close()
 	if err != nil {
 		return err
@@ -152,7 +153,8 @@ func (repo *SSHRepository) Download(repoPath, localPath string, m *Meter) error 
 		return err
 	}
 	defer dest.Close()
-	written, err := CopyWithMeter(dest, src, m)
+
+	written, err := src.WriteTo(&sshFileWrapper{file: dest, meter: m})
 	if err != nil {
 		return err
 	}
@@ -191,4 +193,33 @@ func (repo *SSHRepository) List(repoPath string) ([]FileInfo, error) {
 		}
 	}
 	return fs2, nil
+}
+
+type sshFileWrapper struct {
+	file  *os.File
+	meter *Meter
+}
+
+func (r *sshFileWrapper) Read(p []byte) (n int, err error) {
+	n, err = r.file.Read(p)
+	if err == nil && r.meter != nil {
+		r.meter.AddBytes(n)
+	}
+	return
+}
+
+func (r *sshFileWrapper) Write(p []byte) (n int, err error) {
+	n, err = r.file.Write(p)
+	if err == nil && r.meter != nil {
+		r.meter.AddBytes(n)
+	}
+	return
+}
+
+func (r *sshFileWrapper) Stat() (os.FileInfo, error) {
+	return r.file.Stat()
+}
+
+func (r *sshFileWrapper) Close() error {
+	return r.file.Close()
 }
