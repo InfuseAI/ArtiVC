@@ -2,10 +2,12 @@ package repository
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math/rand"
 	"net"
 	"os"
+	"os/exec"
 	osuser "os/user"
 	"path"
 	"path/filepath"
@@ -49,6 +51,7 @@ func NewSSHRepository(hostname, basePath string) (*SSHRepository, error) {
 	user := currentUser.Username
 	port := 22
 	strictHostKeyChecking := true
+	var proxyCommand string
 
 	explictSigners := []ssh.Signer{}
 
@@ -65,7 +68,7 @@ func NewSSHRepository(hostname, basePath string) (*SSHRepository, error) {
 			hostname = value
 		}
 
-		if value, err := cfg.Get(alias, "Port"); err == nil {
+		if value, err := cfg.Get(alias, "Port"); err == nil && value != "" {
 			port, err = strconv.Atoi(value)
 			if err != nil {
 				return nil, err
@@ -94,6 +97,10 @@ func NewSSHRepository(hostname, basePath string) (*SSHRepository, error) {
 				explictSigners = append(explictSigners, signer)
 			}
 		}
+
+		if value, err := cfg.Get(alias, "ProxyCommand"); err == nil {
+			proxyCommand = value
+		}
 	}
 
 	// host key callbacks: knownhosts
@@ -106,7 +113,7 @@ func NewSSHRepository(hostname, basePath string) (*SSHRepository, error) {
 	}
 
 	hostkeyCallback := ssh.InsecureIgnoreHostKey()
-	if strictHostKeyChecking {
+	if strictHostKeyChecking && proxyCommand == "" {
 		knownHostFile := filepath.Join(currentUser.HomeDir, ".ssh", "known_hosts")
 		log.Debug("check known hosts by file " + knownHostFile)
 		if knownhostCallback, err := knownhosts.New(knownHostFile); err != nil {
@@ -188,14 +195,34 @@ func NewSSHRepository(hostname, basePath string) (*SSHRepository, error) {
 	}
 
 	// setup the ssh client and sftp client
-	log.Debugf("connect to %s@%s:%s at port %d", user, hostname, basePath, port)
-	sshClient, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", hostname, port), &ssh.ClientConfig{
-		User:            user,
-		Auth:            authMethods,
-		HostKeyCallback: hostkeyCallback,
-	})
-	if err != nil {
-		return nil, err
+	var sshClient *ssh.Client
+	if proxyCommand != "" {
+		proxyCommandConn, err := newProxyCommandConn(proxyCommand)
+		if err != nil {
+			return nil, err
+		}
+
+		c, chans, reqs, err := ssh.NewClientConn(proxyCommandConn, hostname, &ssh.ClientConfig{
+			User:            user,
+			Auth:            authMethods,
+			HostKeyCallback: hostkeyCallback,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		sshClient = ssh.NewClient(c, chans, reqs)
+
+	} else {
+		log.Debugf("connect to %s@%s:%s at port %d", user, hostname, basePath, port)
+		sshClient, err = ssh.Dial("tcp", fmt.Sprintf("%s:%d", hostname, port), &ssh.ClientConfig{
+			User:            user,
+			Auth:            authMethods,
+			HostKeyCallback: hostkeyCallback,
+		})
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	sftpClient, err := sftp.NewClient(sshClient, sftp.UseConcurrentReads(true), sftp.UseConcurrentWrites(true))
@@ -378,4 +405,74 @@ func (r *sshFileWrapper) Stat() (os.FileInfo, error) {
 
 func (r *sshFileWrapper) Close() error {
 	return r.file.Close()
+}
+
+type proxyCommandConn struct {
+	cmd    *exec.Cmd
+	writer io.WriteCloser
+	reader io.ReadCloser
+}
+
+func newProxyCommandConn(proxyCommand string) (*proxyCommandConn, error) {
+	log.Debugln("open a proxyCommand: " + proxyCommand)
+
+	shell := "/bin/sh"
+	cmd := exec.Command(shell, "-c", proxyCommand)
+	writer, err := cmd.StdinPipe()
+	if err != nil {
+		return nil, err
+	}
+	reader, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+
+	go cmd.Run()
+
+	return &proxyCommandConn{
+		cmd:    cmd,
+		writer: writer,
+		reader: reader,
+	}, nil
+}
+
+func (c *proxyCommandConn) Read(b []byte) (n int, err error) {
+	n, err = c.reader.Read(b)
+	if err != nil {
+		log.Debugln("Read error: " + err.Error())
+	}
+	return
+}
+
+func (c *proxyCommandConn) Write(b []byte) (n int, err error) {
+	n, err = c.writer.Write(b)
+	if err != nil {
+		log.Debugln("Write error: " + err.Error())
+	}
+	return
+}
+
+func (c *proxyCommandConn) Close() error {
+	// return c.cmd.Process.Kill()
+	return nil
+}
+
+func (f *proxyCommandConn) LocalAddr() net.Addr {
+	return nil
+}
+
+func (f *proxyCommandConn) RemoteAddr() net.Addr {
+	return nil
+}
+
+func (f *proxyCommandConn) SetDeadline(t time.Time) error {
+	return nil
+}
+
+func (f *proxyCommandConn) SetReadDeadline(t time.Time) error {
+	return nil
+}
+
+func (f *proxyCommandConn) SetWriteDeadline(t time.Time) error {
+	return nil
 }
