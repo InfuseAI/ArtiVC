@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -23,7 +24,6 @@ import (
 	"golang.org/x/crypto/ssh/knownhosts"
 )
 
-// Local Filesystem
 type SSHRepository struct {
 	BaseDir    string
 	SSHClient  *ssh.Client
@@ -43,6 +43,32 @@ func normalizeKeyPath(path string) string {
 }
 
 func NewSSHRepository(hostname, basePath string) (*SSHRepository, error) {
+	sshClient, err := newSSHClient(hostname, false)
+	if err != nil {
+		return nil, err
+	}
+
+	sftpClient, err := sftp.NewClient(sshClient, sftp.UseConcurrentReads(true), sftp.UseConcurrentWrites(true))
+	if err != nil {
+		return nil, err
+	}
+
+	rand.Seed(time.Now().UnixNano())
+
+	return &SSHRepository{
+		BaseDir:    basePath,
+		SSHClient:  sshClient,
+		SFTPClient: sftpClient,
+	}, nil
+}
+
+func newSSHClient(hostname string, proxy bool) (*ssh.Client, error) {
+	if proxy {
+		log.Debugln("try to connect to proxy server " + hostname)
+	} else {
+		log.Debugln("try to connect to ssh server " + hostname)
+	}
+
 	currentUser, err := osuser.Current()
 	if err != nil {
 		return nil, err
@@ -52,6 +78,7 @@ func NewSSHRepository(hostname, basePath string) (*SSHRepository, error) {
 	port := 22
 	strictHostKeyChecking := true
 	var proxyCommand string
+	var proxyJump string
 
 	explictSigners := []ssh.Signer{}
 
@@ -101,6 +128,10 @@ func NewSSHRepository(hostname, basePath string) (*SSHRepository, error) {
 		if value, err := cfg.Get(alias, "ProxyCommand"); err == nil {
 			proxyCommand = value
 		}
+
+		if value, err := cfg.Get(alias, "ProxyJump"); err == nil {
+			proxyJump = value
+		}
 	}
 
 	// host key callbacks: knownhosts
@@ -114,31 +145,16 @@ func NewSSHRepository(hostname, basePath string) (*SSHRepository, error) {
 
 	hostkeyCallback := ssh.InsecureIgnoreHostKey()
 	if strictHostKeyChecking && proxyCommand == "" {
-		knownHostFile := filepath.Join(currentUser.HomeDir, ".ssh", "known_hosts")
-		log.Debug("check known hosts by file " + knownHostFile)
-		if knownhostCallback, err := knownhosts.New(knownHostFile); err != nil {
-			log.Debug("cannot load knownhost file: " + err.Error())
-		} else {
-			hostkeyCallback = func(hostname string, remote net.Addr, key ssh.PublicKey) error {
-				if tcpAddr, ok := remote.(*net.TCPAddr); ok {
-					if tcpAddr.IP.IsLoopback() {
-						log.Debugln("loopback network. Skip the knownhost check")
-						return nil
-					}
-				}
-
-				return knownhostCallback(hostname, remote, key)
-			}
-		}
+		hostkeyCallback = sshKnownhostCallback
 	} else {
 		log.Debug("skip the known hosts check")
 	}
 
-	if value := os.Getenv("SSH_USER"); value != "" {
+	if value := os.Getenv("SSH_USER"); !proxy && value != "" {
 		user = value
 	}
 
-	if value := os.Getenv("SSH_PORT"); value != "" {
+	if value := os.Getenv("SSH_PORT"); !proxy && value != "" {
 		port, err = strconv.Atoi(value)
 		if err != nil {
 			return nil, fmt.Errorf("cannot parse SSH_PORT: %s", err.Error())
@@ -160,13 +176,13 @@ func NewSSHRepository(hostname, basePath string) (*SSHRepository, error) {
 
 	// auth method: Password
 	authMethods := []ssh.AuthMethod{}
-	if password := os.Getenv("SSH_PASSWORD"); password != "" {
+	if password := os.Getenv("SSH_PASSWORD"); !proxy && password != "" {
 		log.Debugln("add password authentication from env")
 		authMethods = append(authMethods, ssh.Password(password))
 	}
 
 	// auth method: Public Keys
-	if identityFile := os.Getenv("SSH_IDENTITY_FILE"); identityFile != "" {
+	if identityFile := os.Getenv("SSH_IDENTITY_FILE"); !proxy && identityFile != "" {
 		signer, err := sshLoadIdentifyFile(identityFile)
 		if err != nil {
 			return nil, err
@@ -196,46 +212,54 @@ func NewSSHRepository(hostname, basePath string) (*SSHRepository, error) {
 
 	// setup the ssh client and sftp client
 	var sshClient *ssh.Client
+	sshConfig := ssh.ClientConfig{
+		User:            user,
+		Auth:            authMethods,
+		HostKeyCallback: hostkeyCallback,
+	}
 	if proxyCommand != "" {
+		proxyCommand = strings.ReplaceAll(proxyCommand, "%h", hostname)
+		proxyCommand = strings.ReplaceAll(proxyCommand, "%p", strconv.Itoa(port))
+
 		proxyCommandConn, err := newProxyCommandConn(proxyCommand)
 		if err != nil {
 			return nil, err
 		}
 
-		c, chans, reqs, err := ssh.NewClientConn(proxyCommandConn, hostname, &ssh.ClientConfig{
-			User:            user,
-			Auth:            authMethods,
-			HostKeyCallback: hostkeyCallback,
-		})
+		c, chans, reqs, err := ssh.NewClientConn(proxyCommandConn, hostname, &sshConfig)
 		if err != nil {
 			return nil, err
 		}
 
 		sshClient = ssh.NewClient(c, chans, reqs)
-
-	} else {
-		log.Debugf("connect to %s@%s:%s at port %d", user, hostname, basePath, port)
-		sshClient, err = ssh.Dial("tcp", fmt.Sprintf("%s:%d", hostname, port), &ssh.ClientConfig{
-			User:            user,
-			Auth:            authMethods,
-			HostKeyCallback: hostkeyCallback,
-		})
+		log.Debugf("connect to %s@%s successfully\n", user, hostname)
+	} else if proxyJump != "" {
+		proxyClient, err := newSSHClient(proxyJump, true)
 		if err != nil {
 			return nil, err
 		}
+
+		proxyJumpConn, err := proxyClient.Dial("tcp", fmt.Sprintf("%s:%d", hostname, port))
+		if err != nil {
+			return nil, err
+		}
+
+		ncc, chans, reqs, err := ssh.NewClientConn(proxyJumpConn, fmt.Sprintf("%s:%d", hostname, port), &sshConfig)
+		if err != nil {
+			return nil, err
+		}
+
+		sshClient = ssh.NewClient(ncc, chans, reqs)
+		log.Debugf("connect to %s@%s successfully\n", user, hostname)
+	} else {
+		sshClient, err = ssh.Dial("tcp", fmt.Sprintf("%s:%d", hostname, port), &sshConfig)
+		if err != nil {
+			return nil, err
+		}
+		log.Debugf("connect to %s@%s at port %d successfully\n", user, hostname, port)
 	}
 
-	sftpClient, err := sftp.NewClient(sshClient, sftp.UseConcurrentReads(true), sftp.UseConcurrentWrites(true))
-	if err != nil {
-		return nil, err
-	}
-
-	rand.Seed(time.Now().UnixNano())
-	return &SSHRepository{
-		BaseDir:    basePath,
-		SSHClient:  sshClient,
-		SFTPClient: sftpClient,
-	}, nil
+	return sshClient, nil
 }
 
 func sshLoadIdentifyFile(identityFile string) (ssh.Signer, error) {
@@ -258,6 +282,47 @@ func sshLoadIdentifyFile(identityFile string) (ssh.Signer, error) {
 		}
 	}
 	return signer, nil
+}
+
+func sshKnownhostCallback(hostname string, remote net.Addr, key ssh.PublicKey) error {
+	currentUser, err := osuser.Current()
+	if err != nil {
+		return err
+	}
+
+	knownHostFile := filepath.Join(currentUser.HomeDir, ".ssh", "known_hosts")
+	log.Debugln("check known hosts by file " + knownHostFile)
+
+	knownhostCallback, err := knownhosts.New(knownHostFile)
+	if err != nil {
+		log.Debug("cannot load knownhost file: " + err.Error())
+	} else {
+		var keyErr *knownhosts.KeyError
+		hErr := knownhostCallback(hostname, remote, key)
+		keyString := knownhosts.Line([]string{}, key)
+		if errors.As(hErr, &keyErr) && len(keyErr.Want) > 0 {
+			// Reference: https://www.godoc.org/golang.org/x/crypto/ssh/knownhosts#KeyError
+			// host key found but key mismatch. return err
+			fmt.Fprintf(os.Stderr, "Error: %s is not a key of %s, either a MiTM attack or %s has reconfigured the host pub key.\n", keyString, hostname, hostname)
+			for _, w := range keyErr.Want {
+				fmt.Fprintf(os.Stderr, "     Offending %v key in %s:%d\n", w.Key.Type(), w.Filename, w.Line)
+			}
+			return keyErr
+		} else if errors.As(hErr, &keyErr) && len(keyErr.Want) == 0 {
+			fmt.Printf("Warning: %s is not trusted, adding this key: %s to known_hosts file.\n", hostname, keyString)
+			f, err := os.OpenFile(knownHostFile, os.O_APPEND|os.O_WRONLY, 0600)
+			if err != nil {
+				return err
+			}
+			defer f.Close()
+			line := fmt.Sprintf("%s\n", knownhosts.Line([]string{hostname}, key))
+			_, err = f.WriteString(line)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func (repo *SSHRepository) Upload(localPath, repoPath string, m *Meter) error {
