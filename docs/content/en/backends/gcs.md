@@ -38,11 +38,11 @@ Before using the backend, you have to configure the service account credential. 
 
 Init a workspace
 ```shell
-avc init gs://mybucket/path/to/data
+avc init gs://mybucket/path/to/mydataset
 ```
 
 Clone a repository
 ```shell
-avc clone gs://mybucket/path/to/data
-cd data/
+avc clone gs://mybucket/path/to/mydataset
+cd mydataset/
 ```

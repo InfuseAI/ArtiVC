@@ -45,7 +45,7 @@ ArtiVC is a CLI tool. No server or gateway is required to install and operate.
 
 ### Multiple backends support
 
-ArtiVC natively supports local filesystem, remote filesystem (by SSH), S3, GCS as backend. And 40+ backends are supported through [Rclone](backends/rclone/) integration. [Learn more](backends/local/)
+ArtiVC natively supports local filesystem, remote filesystem (by SSH), S3, GCS as backend. And 40+ backends are supported through [Rclone](backends/rclone/) integration. [Learn more](backends/)
 
 <--->
 
