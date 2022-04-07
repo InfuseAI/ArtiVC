@@ -3,7 +3,9 @@ title: Rclone
 weight: 50
 ---
 
-[Rclone](https://rclone.org/) is a command-line program to manage files on cloud storage. As a analogy, **Rclone** is the **rsync** for cloud storage. Rclone supports [40+ providers](https://rclone.org/#providers). The Rclone repository is to use **Rclone** command to communicate with the remote backend.
+Use [Rclone](https://rclone.org/) as the repository backned. 
+
+Rclone is a command-line program to manage files on cloud storage. As a analogy, **Rclone** is the **rsync** for cloud storage. Rclone supports [40+ providers](https://rclone.org/#providers). The Rclone backend is to use **Rclone** command to communicate with the remote backend.
 
 
 ## Configuration
