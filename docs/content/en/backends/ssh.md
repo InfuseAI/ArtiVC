@@ -105,7 +105,7 @@ There are two ways to connect to the destination server through bastion (proxy) 
 | `SSH_PORT` | The port of the ssh server | 22 |
 | `SSH_IDENTITY_FILE` | The identity file to be used for pubkey authentication |  |
 | `SSH_KEY_PASSPHRASE` | The passphrase of the identity key  |  |
-| `SSH_SRTICT_HOST_KEY_CHECKING` | Set the value to `no` to disable the key checking | |
+| `SSH_STRICT_HOST_KEY_CHECKING` | Set the value to `no` to disable the key checking | |
 
 ## Supported Directives for SSH config
 

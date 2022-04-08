@@ -80,7 +80,7 @@ func newSSHClient(hostname string, proxy bool) (*ssh.Client, error) {
 	var proxyCommand string
 	var proxyJump string
 
-	explictSigners := []ssh.Signer{}
+	explicitSigners := []ssh.Signer{}
 
 	// Load ~/.ssh/config
 	f, err := os.Open(filepath.Join(currentUser.HomeDir, ".ssh", "config"))
@@ -121,7 +121,7 @@ func newSSHClient(hostname string, proxy bool) (*ssh.Client, error) {
 				}
 
 				log.Debugln("Add identify file from config: " + identityFile)
-				explictSigners = append(explictSigners, signer)
+				explicitSigners = append(explicitSigners, signer)
 			}
 		}
 
@@ -135,7 +135,7 @@ func newSSHClient(hostname string, proxy bool) (*ssh.Client, error) {
 	}
 
 	// host key callbacks: knownhosts
-	if value := os.Getenv("SSH_SRTICT_HOST_KEY_CHECKING"); value != "" {
+	if value := os.Getenv("SSH_STRICT_HOST_KEY_CHECKING"); value != "" {
 		if value == "no" {
 			strictHostKeyChecking = false
 		} else if value == "yes" {
@@ -189,22 +189,22 @@ func newSSHClient(hostname string, proxy bool) (*ssh.Client, error) {
 		}
 
 		log.Debugln("add identify file from env: " + identityFile)
-		explictSigners = append(explictSigners, signer)
+		explicitSigners = append(explicitSigners, signer)
 	}
 
-	if agentClient != nil || len(explictSigners) > 0 {
+	if agentClient != nil || len(explicitSigners) > 0 {
 		authPublickey := ssh.PublicKeysCallback(func() (signers []ssh.Signer, err error) {
 			if agentClient == nil {
-				return explictSigners, nil
+				return explicitSigners, nil
 			}
 
 			agentSigners, err := agentClient.Signers()
 			if err != nil {
 				log.Debug("request signers from agent failed: " + err.Error())
-				return explictSigners, nil
+				return explicitSigners, nil
 			}
 
-			return append(agentSigners, explictSigners...), nil
+			return append(agentSigners, explicitSigners...), nil
 		})
 
 		authMethods = append(authMethods, authPublickey)
