@@ -53,8 +53,6 @@ func makeAzureServiceAccountUrl(accountName string) string {
 }
 
 func NewAzureBlobRepository(repo string) (*AzureBlobRepository, error) {
-	ctx := context.Background()
-
 	accountName, container, prefix, err := ParseAzureBlobUrl(repo)
 	if err != nil {
 		return nil, err
