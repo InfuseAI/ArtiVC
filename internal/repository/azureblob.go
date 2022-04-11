@@ -97,7 +97,7 @@ func NewAzureBlobRepository(repo string) (*AzureBlobRepository, error) {
 	}
 
 	// check if the client has enough permission
-	dir, err := os.MkdirTemp("", "*-azblob")
+	dir, err := os.MkdirTemp("", "artivc-azblob-*")
 	if err != nil {
 		return nil, err
 	}
