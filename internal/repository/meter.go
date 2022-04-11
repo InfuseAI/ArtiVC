@@ -94,9 +94,11 @@ func (m *Meter) SetBytes(bytes int64) {
 }
 
 func CopyWithMeter(dest io.Writer, src io.Reader, meter *Meter) (int64, error) {
+	buf := make([]byte, 1024*1024)
+
 	if meter != nil {
-		return io.Copy(dest, io.TeeReader(src, meter))
+		return io.CopyBuffer(dest, io.TeeReader(src, meter), buf)
 	}
 
-	return io.Copy(dest, src)
+	return io.CopyBuffer(dest, src, buf)
 }
