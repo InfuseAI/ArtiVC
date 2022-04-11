@@ -120,7 +120,7 @@ func NewAzureBlobRepository(repo string) (*AzureBlobRepository, error) {
 		} else if errStorage.ErrorCode == azblob.StorageErrorCodeAuthorizationPermissionMismatch {
 			// authorization permission mismatch
 			log.Debugln(errStorage.Error())
-			fmt.Fprintf(os.Stderr, "Authroization permission mismatch. Please assign 'Storage Blob Data Contributor' role to the logged-in account in the storage account '%s'\n", accountName)
+			fmt.Fprintf(os.Stderr, "Authorization permission mismatch. Please assign 'Storage Blob Data Contributor' role to the logged-in account in the storage account '%s'\n", accountName)
 			fmt.Fprintln(os.Stderr, "Please see https://docs.microsoft.com/azure/storage/blobs/assign-azure-role-data-access")
 			fmt.Fprintln(os.Stderr, "")
 			return nil, fmt.Errorf("authorization permission mismatch")
