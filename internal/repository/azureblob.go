@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	neturl "net/url"
 	"os"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
+	"github.com/infuseai/artivc/internal/log"
 )
 
 type AzureBlobRepository struct {
@@ -89,18 +91,48 @@ func NewAzureBlobRepository(repo string) (*AzureBlobRepository, error) {
 	}
 
 	containerClient := serviceClient.NewContainerClient(container)
-	_, err = containerClient.GetProperties(ctx, nil)
-	if err != nil {
-		// log.Debugln(err)
-		// return nil, fmt.Errorf("cannot access the container '%s' under the storage account '%s'. Pleasee use the option '--debug' to see the detail", container, accountName)
-		return nil, err
-	}
 
-	return &AzureBlobRepository{
+	r := &AzureBlobRepository{
 		Client:   &containerClient,
 		BasePath: repo,
 		Prefix:   prefix,
-	}, nil
+	}
+
+	// check if the client has enough permission
+	dir, err := os.MkdirTemp("", "*-azblob")
+	if err != nil {
+		return nil, err
+	}
+	defer os.RemoveAll(dir) // clean up
+
+	err = r.Download("refs/latest", filepath.Join(dir, "latest"), nil)
+	if err != nil {
+		var internalError *azblob.InternalError
+		if !errors.As(err, &internalError) {
+			return nil, err
+		}
+
+		var errStorage *azblob.StorageError
+		if !internalError.As(&errStorage) {
+			return nil, internalError
+		}
+
+		if errStorage.ErrorCode == azblob.StorageErrorCodeBlobNotFound {
+			// blob not found. but authentication/authorization check is ok. PASS
+		} else if errStorage.ErrorCode == azblob.StorageErrorCodeAuthorizationPermissionMismatch {
+			// authorization permission mismatch
+			log.Debugln(errStorage.Error())
+			fmt.Fprintf(os.Stderr, "Authroization permission mismatch. Please assign 'Storage Blob Data Contributor' role to the logged-in account in the storage account '%s'\n", accountName)
+			fmt.Fprintln(os.Stderr, "Please see https://docs.microsoft.com/azure/storage/blobs/assign-azure-role-data-access")
+			fmt.Fprintln(os.Stderr, "")
+			return nil, fmt.Errorf("authorization permission mismatch")
+		} else {
+			// other error
+			return nil, errStorage
+		}
+	}
+
+	return r, nil
 }
 
 func (repo *AzureBlobRepository) Upload(localPath, repoPath string, m *Meter) error {
