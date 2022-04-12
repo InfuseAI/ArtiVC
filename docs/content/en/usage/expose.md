@@ -1,6 +1,6 @@
 ---
-title: Expose the dataset
-weight: 3
+title: Expose the data
+weight: 20
 ---
 
 ArtiVC repository can be exposed as a http endpoint. In S3, we can just make the bucket and give the data consumer the http endpiont of the repository. In this way, we can download data through CDN or other reverse proxies.

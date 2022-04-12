@@ -1,8 +1,16 @@
 ---
 title: Dataset Preparation
+weight: 2
 ---
 
-Dataset Preparation use case is the most commmon use case in ArtiVC. You can prepare the unstructured data and push commit to the remote frequently.
+Organizing dataset can be a hassle, especially as data is constantly evolving. ArtiVC is the most suitable tool to organize the dataset. There are the following benefits.
+
+- No need to transfer files with the exisitng content. Even you rename or copy to different folder. ArtiVC knows they are the same content. It is common to move or keep the same images, videos when the dataset is evloving.
+- Version tagging. If there is a stable version of dataset, we can tag a commit as the human-readable version.
+
+## Prepare a dataset
+
+Here are the common steps to prepare a dataset
 
 1. Create a dataset folder and use subfolders as image labels
 1. Initiate the workspace.
@@ -41,7 +49,7 @@ Dataset Preparation use case is the most commmon use case in ArtiVC. You can pre
    avc log
    ```
 
-## Clone by other users
+## Clone the dataset
 
 Use the dataset in the other machine
 
