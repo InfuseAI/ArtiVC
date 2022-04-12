@@ -1,6 +1,6 @@
 ---
 title: Partial Download
-weight: 3
+weight: 13
 ---
 
 By default, ArtiVC download all files of a version. It also supports to download partial of the files in a commit.

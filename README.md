@@ -1,8 +1,6 @@
 # ArtiVC
 
-[ArtiVC](https://artivc.io/) (**Arti**facts **V**ersion **C**ontrol) is a version control system for large files. 
-
-To store and share large files, we may use NFS or object storage (e.g. s3, MinIO). However, if we would like to do versioning on top of them, it is not a trivial thing. ArtiVC is a CLI tool to enable you to version files on your storage without pain. You don't need to install any additional server or gateway and we turn your storage into the versioned repository.
+[ArtiVC](https://artivc.io/) (**Arti**facts **V**ersion **C**ontrol) is a handy command-line tool for data versioning on cloud storage. With only one command, it helps you neatly snapshot your data and Switch data between versions. Even better, it seamlessly integrates your existing cloud environment. ArtiVC supports three major cloud providers (AWS S3, Google Cloud Storage, Azure Blob Storage) and the remote filesystem using SSH.
 
 [![asciicast](https://asciinema.org/a/6JEhzpJ5QMiSkiC74s5CyT257.svg)](https://asciinema.org/a/6JEhzpJ5QMiSkiC74s5CyT257?autoplay=1)
 
@@ -10,17 +8,12 @@ Try it out from the [Getting Started](https://artivc.io/usage/getting-started/) 
 
 # Features
 
-- **Use your own storage**: If you store data in NFS or S3, just use the storage you already use.
-- **No additional server required**: ArtiVC is a CLI tool. No server or gateway is required to install or operate.
-- **Multiple backend support**: Currently, we support local, NFS (by local repo), and s3. And more in the future
-
-- **Reproducible**: A commit is stored in a single file and cannot be changed. There is no way to add/remove/modify a single file in a commit.
-- **Expose your data publicly**: Expose your repository with a public HTTP endpoint, then you can download your data in this way
-  ```
-  avc get -o /tmp/dataset https://mybucket.s3.ap-northeast-1.amazonaws.com/path/to/my/data@v0.1.0
-  ```
-- **Smart storage and transfer**: For the same content of files, there is only one instance stored in the artifact repository. If a file has been uploaded by other commits, no upload is required because we know the file is already there in the repository. Under the hood, we use [content-addressable storage](https://en.wikipedia.org/wiki/Content-addressable_storage) to put the objects.
-
+- **Data Versioning**: Version your data like versioning code. ArtiVC supports commit history, commit message, and version tag. You can diff two commits, and pull data from the specific version.
+- **Use your own storage**: We are used to putting large files in NFS or S3. To use ArtiVC, you can keep putting your files on the same storage without changes.
+- **No additional server is required**: ArtiVC is a CLI tool. No server or gateway is required to install and operate.
+- **Multiple backends support**:  ArtiVC natively supports local filesystem, remote filesystem (by SSH), AWS S3, Google Cloud Storage, and Azure Blob Storage as backend. And 40+ backends are supported through [Rclone](https://artivc.io/backends/rclone/) integration. [Learn more](https://artivc.io/backends/)
+- **Painless Configuration**:  No one like to configure. So we leverage the original configuration as much as possible. Use `.ssh/config` for ssh access, and use `aws configure`, `gcloud auth application-default login`, `az login` for the cloud platforms.
+- **Efficient storage and transfer**:  The file structure of the repository is stored and transferred efficiently by [design](https://artivc.io/design/how-it-works/). It prevents storing duplicated content and minimum the number of files to upload when pushing a new version. [Learn more](https://artivc.io/design/benchmark/)
 
 # Documentation
 
