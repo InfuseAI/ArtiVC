@@ -136,20 +136,30 @@ func NewAzureBlobRepository(repo string) (*AzureBlobRepository, error) {
 func (repo *AzureBlobRepository) Upload(localPath, repoPath string, m *Meter) error {
 	ctx := context.Background()
 
-	// src
+	// file
 	src, err := os.Open(localPath)
 	if err != nil {
 		return err
 	}
 	defer src.Close()
 
-	// dest
+	// upload
 	blobPath := filepath.Join(repo.Prefix, repoPath)
 	blobClient := repo.Client.NewBlockBlobClient(blobPath)
-	blobClient.Upload(
+
+	blobClient.UploadFileToBlockBlob(
 		ctx,
 		src,
-		nil)
+		azblob.HighLevelUploadToBlockBlobOption{
+			Progress: func(bytesTransferred int64) {
+				if m != nil {
+					m.SetBytes(bytesTransferred)
+				}
+			},
+			Parallelism: 10,
+		},
+	)
+
 	if err != nil {
 		return err
 	}
@@ -160,26 +170,24 @@ func (repo *AzureBlobRepository) Upload(localPath, repoPath string, m *Meter) er
 func (repo *AzureBlobRepository) Download(repoPath, localPath string, m *Meter) error {
 	ctx := context.Background()
 
-	// src
-	blobPath := filepath.Join(repo.Prefix, repoPath)
-	blobClient := repo.Client.NewBlockBlobClient(blobPath)
-	get, err := blobClient.Download(ctx, nil)
-	if err != nil {
-		return err
-	}
-
-	src := get.Body(nil)
-	defer src.Close()
-
-	// dest
+	// file
 	dest, err := os.Create(localPath)
 	if err != nil {
 		return err
 	}
 	defer dest.Close()
 
-	// copy
-	_, err = CopyWithMeter(dest, src, m)
+	// download
+	blobPath := filepath.Join(repo.Prefix, repoPath)
+	blobClient := repo.Client.NewBlockBlobClient(blobPath)
+	err = blobClient.DownloadBlobToFile(ctx, 0, 0, dest, azblob.HighLevelDownloadFromBlobOptions{
+		Progress: func(bytesTransferred int64) {
+			if m != nil {
+				m.SetBytes(bytesTransferred)
+			}
+		},
+		Parallelism: 10,
+	})
 	if err != nil {
 		return err
 	}
