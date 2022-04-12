@@ -24,7 +24,7 @@ For more information, please see https://docs.microsoft.com/azure/storage/blobs/
 
 ### Use Azure CLI to login
 
-This backend suppport to use [Azure CLI](https://docs.microsoft.com/cli/azure/install-azure-cli) to configure the login account. It will open the browser and start the login process. 
+This backend supports to use [Azure CLI](https://docs.microsoft.com/cli/azure/install-azure-cli) to configure the login account. It will open the browser and start the login process. 
 
 ```
 az login
