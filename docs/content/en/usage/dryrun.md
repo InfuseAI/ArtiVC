@@ -3,7 +3,7 @@ title: Dry Run
 weight: 11
 ---
 
-Pushing and pulling data is time-consuming. And need to be double-check before transfering. Dry run is the feature allows to list the changeset before sending.
+Pushing and pulling data is time-consuming. And need to be double-checked before transferring. Dry-run is the feature that allows listing the changeset before sending.
 
 
 ## Push

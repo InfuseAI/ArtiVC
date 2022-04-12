@@ -8,7 +8,7 @@ Try it out from the [Getting Started](https://artivc.io/usage/getting-started/) 
 
 # Features
 
-- **Data Versioning**: Version your data like versioning code. ArtiVC supports commit history, commit message, and version tag. You can diff two commits, and pull data from the speciifc version.
+- **Data Versioning**: Version your data like versioning code. ArtiVC supports commit history, commit message, and version tag. You can diff two commits, and pull data from the specific version.
 - **Use your own storage**: We are used to putting large files in NFS or S3. To use ArtiVC, you can keep putting your files on the same storage without changes.
 - **No additional server is required**: ArtiVC is a CLI tool. No server or gateway is required to install and operate.
 - **Multiple backends support**:  ArtiVC natively supports local filesystem, remote filesystem (by SSH), AWS S3, Google Cloud Storage, and Azure Blob Storage as backend. And 40+ backends are supported through [Rclone](https://artivc.io/backends/rclone/) integration. [Learn more](https://artivc.io/backends/)

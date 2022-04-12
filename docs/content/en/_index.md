@@ -23,7 +23,7 @@ geekdocAnchor: false
 {{< columns >}}
 ### Data Versioning
 
-Version your data like versioning code. ArtiVC supports commit history, commit message, and version tag. You can diff two commits, and pull data from the speciifc version.
+Version your data like versioning code. ArtiVC supports commit history, commit message, and version tag. You can diff two commits, and pull data from the specific version.
 
 <--->
 

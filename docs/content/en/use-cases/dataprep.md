@@ -5,7 +5,7 @@ weight: 2
 
 Organizing dataset can be a hassle, especially as data is constantly evolving. ArtiVC is the most suitable tool to organize the dataset. There are the following benefits.
 
-- No need to transfer files with the exisitng content. Even you rename or copy to different folder. ArtiVC knows they are the same content. It is common to move or keep the same images, videos when the dataset is evloving.
+- No need to transfer files with the existing content. Even you rename or copy to different folder. ArtiVC knows they are the same content. It is common to move or keep the same images, videos when the dataset is evolving.
 - Version tagging. If there is a stable version of dataset, we can tag a commit as the human-readable version.
 
 ## Prepare a dataset
@@ -29,7 +29,7 @@ Here are the common steps to prepare a dataset
    # Push
    avc push -m 'my second version' 
    ```
-1. If there are new version is pushed by others, sync the data set with remote
+1. If there are new versions is pushed by others, sync the data set with remote
    ```shell
    # Check the difference
    avc pull --dry-run

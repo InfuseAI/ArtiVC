@@ -182,7 +182,7 @@ For more information, please see the [Azure Blob Storage](../../backends/azurebl
    avc log
    ```
 
-## Clone data from exisiting repository
+## Clone data from existing repository
 1. Go to the folder to clone repository
    
    {{<tabs "avc clone">}}
