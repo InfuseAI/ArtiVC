@@ -7,9 +7,10 @@ geekdocAnchor: false
 ---
 
 {{< columns >}}
-### ArtiVC (Artifact Version Control) is a version control system for large files.
 
-Do you need to backup your data regularly? Does keeping summarizing and organizing various dataset versions take up your day's productivity? ArtiVC is a handy command-line tool. With only one command, it helps you neatly snapshot your data and tidily switch among different versions of the data. Even better, it seamlessly integrates your existing cloud environment. ArtiVC supports three major cloud providers (AWS S3, Google Cloud Storage, Azure Blob Storage) or stores data in the remote filesystem using SSH. ArtiVC unleashes your performance on your most important jobs with no pain.
+<p style="text-align: left">
+<b>ArtiVC (Artifact Version Control) is a handy command-line tool for data versioning on cloud storage.</b> With only one command, it helps you neatly snapshot your data and Switch data between versions. Even better, it seamlessly integrates your existing cloud environment. ArtiVC supports three major cloud providers (AWS S3, Google Cloud Storage, Azure Blob Storage) and the remote filesystem using SSH.
+</p>
 
 <--->
 [![asciicast](https://asciinema.org/a/6JEhzpJ5QMiSkiC74s5CyT257.svg)](https://asciinema.org/a/6JEhzpJ5QMiSkiC74s5CyT257?autoplay=1)
