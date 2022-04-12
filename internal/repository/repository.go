@@ -91,8 +91,14 @@ func NewRepository(repo string) (Repository, error) {
 		return NewRcloneRepository(host, path)
 	case "ssh":
 		return NewSSHRepository(host, path)
-	case "http", "https":
+	case "http":
 		return NewHttpRepository(repo)
+	case "https":
+		if IsAzureStorageUrl(repo) {
+			return NewAzureBlobRepository(repo)
+		} else {
+			return NewHttpRepository(repo)
+		}
 	default:
 		return nil, UnsupportedRepositoryError{
 			Message: "unsupported repository",

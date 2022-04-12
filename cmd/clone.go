@@ -31,7 +31,7 @@ var cloneCommand = &cobra.Command{
 			return
 		}
 
-		if strings.HasPrefix(repo, "http") {
+		if strings.HasPrefix(repo, "http") && !repository.IsAzureStorageUrl(repo) {
 			exitWithError(errors.New("clone not support under http(s) repo"))
 			return
 		}

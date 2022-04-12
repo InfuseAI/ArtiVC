@@ -45,19 +45,19 @@ ArtiVC is a CLI tool. No server or gateway is required to install and operate.
 
 ### Multiple backends support
 
-ArtiVC natively supports local filesystem, remote filesystem (by SSH), S3, GCS as backend. And 40+ backends are supported through [Rclone](backends/rclone/) integration. [Learn more](backends/)
+ArtiVC natively supports local filesystem, remote filesystem (by SSH), AWS S3, Google Cloud Storage, Azure Blob Storage as backend. And 40+ backends are supported through [Rclone](backends/rclone/) integration. [Learn more](backends/)
 
 <--->
 
-### Expose your data to public
+### Painless Configuration
 
-To serve a repository as a public HTTP endpoint, the repository turn to a http repository right away. Then the data consumer can download your data with an one-line command. [Learn more](use-cases/expose/)
+No one like to configure. So we leverage the original configuraion as much as possible. Use `.ssh/config` for ssh access, and use `aws configure`, `gcloud auth application-default login`, `az login` for the cloud platforms.
 
 <--->
 
 ### Efficient storage and transfer
 
-The file structure of repository is storage and transfer effiecntly by [design](design/how-it-works/). It prevent from storing duplicated content and minimum the round-trip time to determine change set to transfer. [Learn more](design/benchmark/)
+The file structure of repository is storage and transfer effiecntly by [design](design/how-it-works/). It prevents from storing duplicated content and minimum the number of files to upload when pushing a new version. [Learn more](design/benchmark/)
 
 
 {{< /columns >}}

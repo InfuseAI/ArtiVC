@@ -47,7 +47,7 @@ var configCommand = &cobra.Command{
 			key := args[0]
 			value := args[1]
 			if key == "repo.url" {
-				if strings.HasPrefix(value, "http") {
+				if strings.HasPrefix(value, "http") && !repository.IsAzureStorageUrl(value) {
 					exitWithError(errors.New("http(s) repository is not supported"))
 					return
 				}
