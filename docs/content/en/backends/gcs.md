@@ -3,6 +3,8 @@ title: Google Cloud Storage
 weight: 12
 ---
 
+{{< toc >}}
+
 Use [Google Cloud Storage (GCS)](https://cloud.google.com/storage) as the repository backend.
 
 Note that Google Cloud Storage is not [Google Drive](https://www.google.com.tw/drive/). They are different google product.
@@ -30,7 +32,7 @@ Before using the backend, you have to configure the service account credential. 
 1. Use the service account in the GCP resources (e.g. GCE, GKE). It is recommended way if the `ArtiVC` is run in the GCP environment. Please see [default service accounts](https://cloud.google.com/iam/docs/service-accounts#default) document
 
 
-    
+The GCS backend finds credentials by a default procedure defined by [Google Cloud](https://cloud.google.com/docs/authentication/production)
 
 
 
@@ -46,3 +48,10 @@ Clone a repository
 avc clone gs://mybucket/path/to/mydataset
 cd mydataset/
 ```
+
+
+## Environment Variables
+
+| Name | Description | Default value |
+| --- | --- | --- |
+| `GOOGLE_APPLICATION_CREDENTIALS` | The location of service account keys in JSON |  |

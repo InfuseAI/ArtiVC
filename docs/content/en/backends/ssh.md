@@ -3,6 +3,8 @@ title: Remote Filesystem (SSH)
 weight: 2
 ---
 
+{{< toc >}}
+
 Use remote filesystem through SSH as the repository backend.
 
 ## Features

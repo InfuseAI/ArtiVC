@@ -3,6 +3,8 @@ title: Azure Blob Storage
 weight: 13
 ---
 
+{{< toc >}}
+
 Use [Azure Blob Storage](https://azure.microsoft.com/services/storage/blobs/) as the repository backend.
 
 ## Configuration
@@ -21,6 +23,8 @@ The logged-in account requires **Storage Blob Data Contributor** role to the sto
 
 For more information, please see https://docs.microsoft.com/azure/storage/blobs/assign-azure-role-data-access
 {{< /hint >}}
+
+The azure blob storage backend authenticates by a default procedure defined by [Azure SDK for Go](https://docs.microsoft.com/azure/developer/go/azure-sdk-authentication)
 
 ### Use Azure CLI to login
 
