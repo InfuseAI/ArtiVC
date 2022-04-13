@@ -13,6 +13,7 @@ endif
 LDFLAGS += -X github.com/infuseai/artivc/cmd.tagVersion=${VERSION}
 LDFLAGS += -X github.com/infuseai/artivc/cmd.gitCommit=${GIT_COMMIT}
 LDFLAGS += -X github.com/infuseai/artivc/cmd.gitTreeState=${GIT_DIRTY}
+LDFLAGS += -s -w
 LDFLAGS += $(EXT_LDFLAGS)
 
 
