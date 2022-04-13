@@ -1,3 +1,15 @@
+<p align="center">
+  <img src="docs/assets/ArtiVC_workspace.svg" width="40%" />
+</p>
+
+<p align="center">
+	<a href="https://raw.githubusercontent.com/infuseai/artivc/main/LICENSE" >
+		<img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="Apache License" /></a>
+	<a href="https://github.com/InfuseAI/ArtiVC/actions?query=workflow%3A%22Go+test%22+branch%3Amain++">
+		<img src="https://github.com/infuseai/artivc/workflows/Go%20test/badge.svg?branch=main" alt="Go tests status" /></a>
+</p>
+
+
 # ArtiVC
 
 [ArtiVC](https://artivc.io/) (**Arti**facts **V**ersion **C**ontrol) is a handy command-line tool for data versioning on cloud storage. With only one command, it helps you neatly snapshot your data and Switch data between versions. Even better, it seamlessly integrates your existing cloud environment. ArtiVC supports three major cloud providers (AWS S3, Google Cloud Storage, Azure Blob Storage) and the remote filesystem using SSH.
