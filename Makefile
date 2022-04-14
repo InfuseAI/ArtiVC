@@ -1,5 +1,6 @@
 VERSION =
 LDFLAGS =
+GO ?= go
 
 GIT_COMMIT = $(shell git rev-parse HEAD)
 GIT_SHA    = $(shell git rev-parse --short HEAD)
@@ -19,13 +20,13 @@ LDFLAGS += $(EXT_LDFLAGS)
 
 build:
 	mkdir -p bin
-	go build -o bin/avc -ldflags '$(LDFLAGS)' main.go
+	$(GO) build -o bin/avc -ldflags '$(LDFLAGS)' main.go
 
 test:
-	go test ./...
+	$(GO) test ./...
 
 integration-test:
-	go test -v ./internal/repository
+	$(GO) test -v ./internal/repository
 
 .PHONY: doc-server
 doc-server:
