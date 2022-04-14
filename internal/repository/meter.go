@@ -56,7 +56,6 @@ func NewSession() *Session {
 }
 
 func (s *Session) NewMeter() *Meter {
-
 	meter := &Meter{
 		total: 0,
 	}
@@ -65,7 +64,7 @@ func (s *Session) NewMeter() *Meter {
 }
 
 func (s *Session) CalculateSpeed() ByteSize {
-	totalDiff := time.Now().Sub(s.startedAt).Seconds()
+	totalDiff := time.Since(s.startedAt).Seconds()
 	var total int64
 	for _, meter := range s.meters {
 		total = total + meter.total

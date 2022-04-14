@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/infuseai/artivc/internal/log"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -78,27 +79,25 @@ func Test_Transfer(t *testing.T) {
 		t.Run(tC.desc, func(t *testing.T) {
 			tmpDir := t.TempDir()
 			path := tmpDir + "/in"
-			generateRandomFile(path, tC.size)
+			assert.NoError(t, generateRandomFile(path, tC.size))
 
-			err = repo.Upload(path, tC.repoPath, nil)
-			if err != nil {
+			if err := repo.Upload(path, tC.repoPath, nil); err != nil {
 				t.Error(err)
 			}
 
-			repo.Download(tC.repoPath, tmpDir+"/out", nil)
-			if err != nil {
+			if err := repo.Download(tC.repoPath, tmpDir+"/out", nil); err != nil {
 				t.Error(err)
 			}
 
 			assert.Equal(t, sha1sum(tmpDir+"/in"), sha1sum(tmpDir+"/out"))
 
-			err = repo.Delete(tC.repoPath)
-			if err != nil {
+			if err := repo.Delete(tC.repoPath); err != nil {
 				t.Error(err)
 			}
 		})
 	}
 }
+
 func Test_Stat(t *testing.T) {
 	repo, err := getRepo()
 	if repo == nil {
@@ -119,7 +118,7 @@ func Test_Stat(t *testing.T) {
 	assert.Error(t, err, "Stat() should return error if the file does not exist")
 
 	// upload & stat
-	generateRandomFile(path, 1024)
+	assert.NoError(t, generateRandomFile(path, 1024))
 	err = repo.Upload(path, repoPath, nil)
 	if err != nil {
 		t.Error(err)
@@ -155,7 +154,7 @@ func Test_List(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
 	tmpDir := t.TempDir()
 	path := tmpDir + "/bin"
-	generateRandomFile(path, 1024)
+	assert.NoError(t, generateRandomFile(path, 1024))
 
 	// Create files
 	//
@@ -174,7 +173,11 @@ func Test_List(t *testing.T) {
 			t.Error(err)
 		}
 
-		defer repo.Delete(rpath)
+		defer func() {
+			if err := repo.Delete(rpath); err != nil {
+				log.Debugln("can't delete repo: " + err.Error())
+			}
+		}()
 	}
 	for i := 0; i < 3; i++ {
 		rpath := fmt.Sprintf("dir/3/%d", i)
@@ -184,12 +187,17 @@ func Test_List(t *testing.T) {
 			t.Error(err)
 		}
 
-		defer repo.Delete(rpath)
+		defer func() {
+			if err := repo.Delete(rpath); err != nil {
+				log.Debugln("can't delete repo: " + err.Error())
+			}
+		}()
 	}
 
 	// test
 	// ls dir
 	list, err := repo.List("dir")
+	assert.NoError(t, err)
 	assert.Equal(t, 4, len(list))
 	for _, info := range list {
 		switch info.Name() {

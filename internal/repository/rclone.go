@@ -61,8 +61,7 @@ func (repo *RcloneRepository) Stat(repoPath string) (FileInfo, error) {
 	var out bytes.Buffer
 	cmd := exec.Command("rclone", "size", "--json", repo.remotePath(repoPath))
 	cmd.Stdout = &out
-	err := cmd.Run()
-	if err != nil {
+	if err := cmd.Run(); err != nil {
 		return nil, err
 	}
 
@@ -71,7 +70,9 @@ func (repo *RcloneRepository) Stat(repoPath string) (FileInfo, error) {
 	}
 
 	var size RcloneSize
-	json.Unmarshal(out.Bytes(), &size)
+	if err := json.Unmarshal(out.Bytes(), &size); err != nil {
+		return nil, err
+	}
 
 	if size.Count == 0 {
 		return nil, os.ErrNotExist

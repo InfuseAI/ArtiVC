@@ -147,7 +147,7 @@ func (repo *AzureBlobRepository) Upload(localPath, repoPath string, m *Meter) er
 	blobPath := filepath.Join(repo.Prefix, repoPath)
 	blobClient := repo.Client.NewBlockBlobClient(blobPath)
 
-	blobClient.UploadFileToBlockBlob(
+	_, err = blobClient.UploadFileToBlockBlob(
 		ctx,
 		src,
 		azblob.HighLevelUploadToBlockBlobOption{
@@ -160,11 +160,7 @@ func (repo *AzureBlobRepository) Upload(localPath, repoPath string, m *Meter) er
 		},
 	)
 
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (repo *AzureBlobRepository) Download(repoPath, localPath string, m *Meter) error {
