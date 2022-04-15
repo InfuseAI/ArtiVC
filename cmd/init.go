@@ -41,7 +41,9 @@ var initCommand = &cobra.Command{
 		}
 
 		fmt.Printf("Initialize the artivc workspace of the repository '%s'\n", repo)
-		core.InitWorkspace(cwd, repo)
+		if err = core.InitWorkspace(cwd, repo); err != nil {
+			exitWithError(err)
+		}
 	},
 }
 

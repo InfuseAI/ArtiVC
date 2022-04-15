@@ -65,7 +65,10 @@ var cloneCommand = &cobra.Command{
 		}
 		fmt.Printf("Cloning into '%s'...\n", destDir)
 
-		core.InitWorkspace(baseDir, repo)
+		if err := core.InitWorkspace(baseDir, repo); err != nil {
+			exitWithError(err)
+			return
+		}
 
 		config, err := core.LoadConfig(baseDir)
 		if err != nil {

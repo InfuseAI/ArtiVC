@@ -168,7 +168,6 @@ func newSSHClient(hostname string, proxy bool) (*ssh.Client, error) {
 		agentConn, err := net.Dial("unix", agentSock)
 		if err != nil {
 			log.Debugln("cannot open ssh agent connection")
-			agentConn = nil
 		} else {
 			agentClient = agent.NewClient(agentConn)
 		}
@@ -310,7 +309,7 @@ func sshKnownhostCallback(hostname string, remote net.Addr, key ssh.PublicKey) e
 			return keyErr
 		} else if errors.As(hErr, &keyErr) && len(keyErr.Want) == 0 {
 			fmt.Printf("Warning: %s is not trusted, adding this key: %s to known_hosts file.\n", hostname, keyString)
-			f, err := os.OpenFile(knownHostFile, os.O_APPEND|os.O_WRONLY, 0600)
+			f, err := os.OpenFile(knownHostFile, os.O_APPEND|os.O_WRONLY, 0o600)
 			if err != nil {
 				return err
 			}
@@ -355,7 +354,11 @@ func (repo *SSHRepository) Upload(localPath, repoPath string, m *Meter) error {
 	if err != nil {
 		return err
 	}
-	defer client.Remove(tmpPath)
+	defer func() {
+		if err := client.Remove(tmpPath); err != nil {
+			log.Debugln("can't remove temp path: " + err.Error())
+		}
+	}()
 
 	_, err = tmp.ReadFrom(&sshFileWrapper{file: source, meter: m})
 	if err != nil {
@@ -492,7 +495,11 @@ func newProxyCommandConn(proxyCommand string) (*proxyCommandConn, error) {
 		return nil, err
 	}
 
-	go cmd.Run()
+	go func() {
+		if err := cmd.Run(); err != nil {
+			log.Debugln("can't execute command: " + err.Error())
+		}
+	}()
 
 	return &proxyCommandConn{
 		cmd:    cmd,

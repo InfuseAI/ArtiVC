@@ -22,7 +22,6 @@ import (
 )
 
 type ArtifactManager struct {
-
 	// local
 	baseDir string // the workspace base dir
 
@@ -307,7 +306,9 @@ func (mngr *ArtifactManager) FindCommitOrReference(refOrCommit string) (string, 
 func (mngr *ArtifactManager) Fetch() error {
 	log.Debugln("fetch the repository metadata")
 	// fetch latest
-	mngr.GetRef(RefLatest)
+	if _, err := mngr.GetRef(RefLatest); err != nil {
+		return err
+	}
 
 	// fetch tags
 	tagEntries, err := mngr.repo.List("refs/tags")
@@ -316,7 +317,9 @@ func (mngr *ArtifactManager) Fetch() error {
 	}
 
 	for _, entry := range tagEntries {
-		mngr.GetRef("tags/" + entry.Name())
+		if _, err := mngr.GetRef("tags/" + entry.Name()); err != nil {
+			return err
+		}
 	}
 
 	// fetch commmits
@@ -660,7 +663,7 @@ func (mngr *ArtifactManager) Pull(options PullOptions) error {
 		}
 
 		if record.Hash == "" {
-			//symbolic link
+			// symbolic link
 			continue
 		}
 
@@ -1083,7 +1086,6 @@ func (mngr *ArtifactManager) Diff(option DiffOptions) (DiffResult, error) {
 }
 
 func (mngr *ArtifactManager) Status() (DiffResult, error) {
-
 	// Make the remote latest commit
 	commitHash, err := mngr.FindCommitOrReference(RefLatest)
 	if err != nil {

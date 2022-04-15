@@ -32,6 +32,8 @@ avc docs`,
 			return "/commands/" + strings.ToLower(base) + "/"
 		}
 
-		doc.GenMarkdownTreeCustom(cmd.Root(), DocDir, func(filestring string) string { return "" }, linkHandler)
+		if err := doc.GenMarkdownTreeCustom(cmd.Root(), DocDir, func(filestring string) string { return "" }, linkHandler); err != nil {
+			exitWithError(err)
+		}
 	},
 }
