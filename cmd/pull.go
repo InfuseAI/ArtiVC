@@ -22,29 +22,19 @@ var pullCmd = &cobra.Command{
   avc pull v0.1.0 -- path/to/partia ...`,
 	Run: func(cmd *cobra.Command, args []string) {
 		config, err := core.LoadConfig("")
-		if err != nil {
-			exitWithError(err)
-			return
-		}
+		exitWithError(err)
 
 		mngr, err := core.NewArtifactManager(config)
-		if err != nil {
-			exitWithError(err)
-			return
-		}
+		exitWithError(err)
 
 		// options
 		option := core.PullOptions{}
 
 		option.DryRun, err = cmd.Flags().GetBool("dry-run")
-		if err != nil {
-			exitWithError(err)
-		}
+		exitWithError(err)
 
 		option.Delete, err = cmd.Flags().GetBool("delete")
-		if err != nil {
-			exitWithError(err)
-		}
+		exitWithError(err)
 
 		argsLenBeforeDash := cmd.Flags().ArgsLenAtDash()
 		if argsLenBeforeDash == -1 {
@@ -70,11 +60,7 @@ var pullCmd = &cobra.Command{
 			}
 		}
 
-		err = mngr.Pull(option)
-		if err != nil {
-			exitWithError(err)
-			return
-		}
+		exitWithError(mngr.Pull(option))
 	},
 }
 

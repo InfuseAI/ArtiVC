@@ -16,26 +16,17 @@ var statusCommand = &cobra.Command{
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		config, err := core.LoadConfig("")
-		if err != nil {
-			exitWithError(err)
-		}
+		exitWithError(err)
 
 		mngr, err := core.NewArtifactManager(config)
-		if err != nil {
-			exitWithError(err)
-		}
+		exitWithError(err)
 
-		err = mngr.Fetch()
-		if err != nil {
-			exitWithError(err)
-		}
+		exitWithError(mngr.Fetch())
 
 		fmt.Printf("workspace of the repository '%s'\n\n", config.RepoUrl())
 
 		result, err := mngr.Status()
-		if err != nil {
-			exitWithError(err)
-		}
+		exitWithError(err)
 
 		result.Print(true)
 	},

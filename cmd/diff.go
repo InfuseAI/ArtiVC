@@ -15,31 +15,20 @@ avc diff v0.1.0 v0.2.0`,
 		left := args[0]
 		right := args[1]
 		config, err := core.LoadConfig("")
-		if err != nil {
-			exitWithError(err)
-		}
+		exitWithError(err)
 
 		mngr, err := core.NewArtifactManager(config)
-		if err != nil {
-			exitWithError(err)
-		}
+		exitWithError(err)
 
 		err = mngr.Fetch()
-		if err != nil {
-			exitWithError(err)
-		}
+		exitWithError(err)
 
 		result, err := mngr.Diff(core.DiffOptions{
 			LeftRef:  left,
 			RightRef: right,
 		})
-		if err != nil {
-			exitWithError(err)
-		}
+		exitWithError(err)
 
 		result.Print(true)
 	},
-}
-
-func init() {
 }

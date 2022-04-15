@@ -20,35 +20,25 @@ var pushCmd = &cobra.Command{
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		config, err := core.LoadConfig("")
-		if err != nil {
-			exitWithError(err)
-		}
+		exitWithError(err)
 
 		// options
 		option := core.PushOptions{}
 		message, err := cmd.Flags().GetString("message")
-		if err != nil {
-			exitWithError(err)
-		}
+		exitWithError(err)
+
 		if message != "" {
 			option.Message = &message
 		}
 
 		option.DryRun, err = cmd.Flags().GetBool("dry-run")
-		if err != nil {
-			exitWithError(err)
-		}
+		exitWithError(err)
 
 		// push
 		mngr, err := core.NewArtifactManager(config)
-		if err != nil {
-			exitWithError(err)
-		}
+		exitWithError(err)
 
-		err = mngr.Push(option)
-		if err != nil {
-			exitWithError(err)
-		}
+		exitWithError(mngr.Push(option))
 	},
 }
 

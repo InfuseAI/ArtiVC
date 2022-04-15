@@ -17,6 +17,7 @@ var logCommand = &cobra.Command{
 	Args: cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
 		config, err := core.LoadConfig("")
+		exitWithError(err)
 
 		var ref string
 		if len(args) == 0 {
@@ -25,22 +26,10 @@ var logCommand = &cobra.Command{
 			ref = args[0]
 		}
 
-		if err != nil {
-			exitWithError(err)
-			return
-		}
-
 		mngr, err := core.NewArtifactManager(config)
-		if err != nil {
-			exitWithError(err)
-			return
-		}
+		exitWithError(err)
 
-		err = mngr.Log(ref)
-		if err != nil {
-			exitWithError(err)
-			return
-		}
+		exitWithError(mngr.Log(ref))
 	},
 }
 

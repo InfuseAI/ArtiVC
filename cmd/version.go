@@ -56,6 +56,3 @@ version.BuildInfo{"Version":"v0.1-dev","GitCommit":"59b5c650fbed4d91c1e54b7cb3c3
 		fmt.Println(GetVersion())
 	},
 }
-
-func init() {
-}

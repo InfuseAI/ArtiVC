@@ -24,26 +24,17 @@ var initCommand = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		cwd, _ := os.Getwd()
 		repo, err := transformRepoUrl(cwd, args[0])
-		if err != nil {
-			exitWithError(err)
-			return
-		}
+		exitWithError(err)
 
 		if strings.HasPrefix(repo, "http") && !repository.IsAzureStorageUrl(repo) {
 			exitWithError(errors.New("init not support under http(s) repo"))
-			return
 		}
 
 		_, err = repository.NewRepository(repo)
-		if err != nil {
-			exitWithError(err)
-			return
-		}
+		exitWithError(err)
 
 		fmt.Printf("Initialize the artivc workspace of the repository '%s'\n", repo)
-		if err = core.InitWorkspace(cwd, repo); err != nil {
-			exitWithError(err)
-		}
+		exitWithError(core.InitWorkspace(cwd, repo))
 	},
 }
 

@@ -26,27 +26,17 @@ var cloneCommand = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		cwd, _ := os.Getwd()
 		repo, err := transformRepoUrl(cwd, args[0])
-		if err != nil {
-			exitWithError(err)
-			return
-		}
+		exitWithError(err)
 
 		if strings.HasPrefix(repo, "http") && !repository.IsAzureStorageUrl(repo) {
 			exitWithError(errors.New("clone not support under http(s) repo"))
-			return
 		}
 
 		_, err = repository.NewRepository(repo)
-		if err != nil {
-			exitWithError(err)
-			return
-		}
+		exitWithError(err)
 
 		destDir, err := parseRepoName(repo)
-		if err != nil {
-			exitWithError(err)
-			return
-		}
+		exitWithError(err)
 
 		if len(args) > 1 {
 			destDir = args[1]
@@ -57,39 +47,24 @@ var cloneCommand = &cobra.Command{
 		if err == nil || (os.IsExist(err) && isDirEmpty(baseDir)) {
 			// pass
 		} else if os.IsExist(err) {
-			exitWithError(fmt.Errorf("fatal: destination path '%s' already exists and is not an empty directory.", destDir))
-			return
+			exitWithFormat("fatal: destination path '%s' already exists and is not an empty directory.", destDir)
 		} else {
-			exitWithError(fmt.Errorf("fatal: cannot create destination path '%s'.", destDir))
-			return
+			exitWithFormat("fatal: cannot create destination path '%s'.", destDir)
 		}
 		fmt.Printf("Cloning into '%s'...\n", destDir)
 
-		if err := core.InitWorkspace(baseDir, repo); err != nil {
-			exitWithError(err)
-			return
-		}
+		exitWithError(core.InitWorkspace(baseDir, repo))
 
 		config, err := core.LoadConfig(baseDir)
-		if err != nil {
-			exitWithError(err)
-			return
-		}
+		exitWithError(err)
 
 		mngr, err := core.NewArtifactManager(config)
-		if err != nil {
-			exitWithError(err)
-			return
-		}
+		exitWithError(err)
 
 		err = mngr.Pull(core.PullOptions{})
 		if err != nil {
 			os.RemoveAll(baseDir) //  remove created dir
 			exitWithError(err)
-			return
 		}
 	},
-}
-
-func init() {
 }
