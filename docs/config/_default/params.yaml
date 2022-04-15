@@ -2,7 +2,7 @@
 description: >
   ArtiVC (Artifact Version Control) is a version control system for large files.
 images:
-  - "ArtiVC-logo_workspace.svg"
+  - "ArtiVC_workspace.png"
 
 geekdocToC: 3
 geekdocTagsToMenu: true
