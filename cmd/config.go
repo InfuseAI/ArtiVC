@@ -27,10 +27,7 @@ var configCommand = &cobra.Command{
 	Args: cobra.RangeArgs(0, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		config, err := core.LoadConfig("")
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "%v\n", err)
-			return
-		}
+		exitWithError(err)
 
 		switch len(args) {
 		case 0:
@@ -41,7 +38,6 @@ var configCommand = &cobra.Command{
 				fmt.Println(value)
 			} else {
 				fmt.Fprintf(os.Stderr, "key not found: %s\n", args[0])
-				os.Exit(1)
 			}
 		case 2:
 			key := args[0]
@@ -49,31 +45,18 @@ var configCommand = &cobra.Command{
 			if key == "repo.url" {
 				if strings.HasPrefix(value, "http") && !repository.IsAzureStorageUrl(value) {
 					exitWithError(errors.New("http(s) repository is not supported"))
-					return
 				}
 
 				cwd, _ := os.Getwd()
 				repo, err := transformRepoUrl(cwd, value)
-				if err != nil {
-					exitWithError(err)
-					return
-				}
+				exitWithError(err)
 
 				_, err = repository.NewRepository(repo)
-				if err != nil {
-					exitWithError(err)
-					return
-				}
+				exitWithError(err)
 			}
 
 			config.Set(key, value)
-			err := config.Save()
-			if err != nil {
-				fmt.Println(err)
-			}
+			exitWithError(config.Save())
 		}
 	},
-}
-
-func init() {
 }

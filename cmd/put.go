@@ -20,21 +20,16 @@ var putCmd = &cobra.Command{
 	Args: cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		baseDir, err := filepath.Abs(args[0])
-		if err != nil {
-			exitWithError(err)
-		}
+		exitWithError(err)
 
 		repoUrl, ref, err := parseRepoStr(args[1])
-		if err != nil {
-			exitWithError(err)
-		}
+		exitWithError(err)
 
 		// options
 		option := core.PushOptions{}
 		message, err := cmd.Flags().GetString("message")
-		if err != nil {
-			exitWithError(err)
-		}
+		exitWithError(err)
+
 		if message != "" {
 			option.Message = &message
 		}
@@ -50,14 +45,9 @@ var putCmd = &cobra.Command{
 
 		// push
 		mngr, err := core.NewArtifactManager(config)
-		if err != nil {
-			exitWithError(err)
-		}
+		exitWithError(err)
 
-		err = mngr.Push(option)
-		if err != nil {
-			exitWithError(err)
-		}
+		exitWithError(mngr.Push(option))
 	},
 }
 

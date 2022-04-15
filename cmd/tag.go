@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/infuseai/artivc/internal/core"
 	"github.com/spf13/cobra"
 )
@@ -18,49 +16,31 @@ var tagCommand = &cobra.Command{
   avc tag v1.0.0
 
   # Tag the specific commit
-  avc tag --ref a1b2c3d4 v1.0.0  
+  avc tag --ref a1b2c3d4 v1.0.0
 
   # Delete a tags
   avc tag --delete v1.0.0`,
 	Args: cobra.RangeArgs(0, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		config, err := core.LoadConfig("")
-		if err != nil {
-			exitWithError(err)
-		}
+		exitWithError(err)
 
 		mngr, err := core.NewArtifactManager(config)
-		if err != nil {
-			fmt.Printf("log %v \n", err)
-			return
-		}
+		exitWithError(err)
 
 		if len(args) == 0 {
-			err := mngr.ListTags()
-			if err != nil {
-				exitWithError(err)
-			}
+			exitWithError(mngr.ListTags())
 		} else if len(args) == 1 {
 			tag := args[0]
 			refOrCommit, err := cmd.Flags().GetString("ref")
-			if err != nil {
-				exitWithError(err)
-			}
+			exitWithError(err)
 			delete, err := cmd.Flags().GetBool("delete")
-			if err != nil {
-				exitWithError(err)
-			}
+			exitWithError(err)
 
 			if !delete {
-				err := mngr.AddTag(refOrCommit, tag)
-				if err != nil {
-					exitWithError(err)
-				}
+				exitWithError(mngr.AddTag(refOrCommit, tag))
 			} else {
-				err := mngr.DeleteTag(tag)
-				if err != nil {
-					exitWithError(err)
-				}
+				exitWithError(mngr.DeleteTag(tag))
 			}
 		} else {
 			exitWithFormat("requires 0 or 1 argument\n")

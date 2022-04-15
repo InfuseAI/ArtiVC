@@ -24,21 +24,12 @@ var listCommand = &cobra.Command{
 		}
 
 		config, err := core.LoadConfig("")
-		if err != nil {
-			exitWithError(err)
-			return
-		}
+		exitWithError(err)
 
 		mngr, err := core.NewArtifactManager(config)
-		if err != nil {
-			exitWithError(err)
-			return
-		}
+		exitWithError(err)
 
-		err = mngr.List(ref)
-		if err != nil {
-			exitWithError(err)
-		}
+		exitWithError(mngr.List(ref))
 	},
 }
 

@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"io/fs"
 	"os"
 	"path"
@@ -24,16 +23,13 @@ avc docs`,
 		if err == nil || (err != nil && os.IsExist(err)) {
 			// pass when directory existing
 		} else {
-			fmt.Printf("Failed to create %s, skip to generate documents\n", DocDir)
-			return
+			exitWithFormat("Failed to create %s, skip to generate documents\n", DocDir)
 		}
 		linkHandler := func(name string) string {
 			base := strings.TrimSuffix(name, path.Ext(name))
 			return "/commands/" + strings.ToLower(base) + "/"
 		}
 
-		if err := doc.GenMarkdownTreeCustom(cmd.Root(), DocDir, func(filestring string) string { return "" }, linkHandler); err != nil {
-			exitWithError(err)
-		}
+		exitWithError(doc.GenMarkdownTreeCustom(cmd.Root(), DocDir, func(filestring string) string { return "" }, linkHandler))
 	},
 }

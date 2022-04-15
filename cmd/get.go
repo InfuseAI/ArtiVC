@@ -20,7 +20,7 @@ var getCmd = &cobra.Command{
 
   # Download the specific version
   avc get s3://mybucket/path/to/mydataset@v1.0.0
-  
+
   # Download to a specific folder
   avc get -o /tmp/mydataset s3://bucket/mydataset
 
@@ -31,29 +31,20 @@ var getCmd = &cobra.Command{
 		var err error
 
 		repoUrl, ref, err := parseRepoStr(args[0])
-		if err != nil {
-			exitWithError(err)
-			return
-		}
+		exitWithError(err)
+
 		baseDir, err := cmd.Flags().GetString("output")
-		if err != nil {
-			exitWithError(err)
-			return
-		}
+		exitWithError(err)
 
 		if baseDir == "" {
 			comps := strings.Split(repoUrl, "/")
 			if len(comps) == 0 {
-				exitWithFormat("invlaid path: %v\n", repoUrl)
-				return
+				exitWithFormat("invlaid path: %v", repoUrl)
 			}
 			baseDir = comps[len(comps)-1]
 		}
 		baseDir, err = filepath.Abs(baseDir)
-		if err != nil {
-			exitWithError(err)
-			return
-		}
+		exitWithError(err)
 
 		metadataDir, _ := os.MkdirTemp(os.TempDir(), "*-avc")
 		defer os.RemoveAll(metadataDir)
@@ -61,10 +52,7 @@ var getCmd = &cobra.Command{
 		config := core.NewConfig(baseDir, metadataDir, repoUrl)
 
 		mngr, err := core.NewArtifactManager(config)
-		if err != nil {
-			exitWithError(err)
-			return
-		}
+		exitWithError(err)
 
 		options := core.PullOptions{NoFetch: true}
 		if ref != "" {
@@ -72,9 +60,7 @@ var getCmd = &cobra.Command{
 		}
 
 		options.Delete, err = cmd.Flags().GetBool("delete")
-		if err != nil {
-			exitWithError(err)
-		}
+		exitWithError(err)
 
 		if len(args) > 1 {
 			if options.Delete {
@@ -85,12 +71,7 @@ var getCmd = &cobra.Command{
 				return fileInclude.MatchesPath(path)
 			}
 		}
-
-		err = mngr.Pull(options)
-		if err != nil {
-			exitWithError(err)
-			return
-		}
+		exitWithError(mngr.Pull(options))
 	},
 }
 
