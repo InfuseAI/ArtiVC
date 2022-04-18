@@ -1,3 +1,0 @@
-
-
-![Cheetsheet](../images/cheatsheet.png)
