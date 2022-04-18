@@ -1,3 +1,3 @@
 
 
-![Cheetsheet](../images/cheatsheet.png)
+![Cheetsheet](../images/cheatsheet_v2.png)
