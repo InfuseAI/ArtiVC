@@ -25,9 +25,8 @@ func TestTransformRepoUrl(t *testing.T) {
 			result, err := transformRepoUrl(baseDir, tC.in)
 			if err != nil {
 				assert.Empty(t, tC.out)
-			} else {
-				assert.Equal(t, tC.out, result)
 			}
+			assert.Equal(t, tC.out, result)
 		})
 	}
 }
