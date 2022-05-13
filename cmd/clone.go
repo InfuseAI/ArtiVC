@@ -24,18 +24,20 @@ var cloneCommand = &cobra.Command{
   avc clone s3://mybucket/path/to/mydataset`,
 	Args: cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
-		cwd, _ := os.Getwd()
-		repo, err := transformRepoUrl(cwd, args[0])
+		cwd, err := os.Getwd()
 		exitWithError(err)
+		result, err := repository.ParseRepo(args[0])
+		exitWithError(err)
+		repo := result.Repo
 
 		if strings.HasPrefix(repo, "http") && !repository.IsAzureStorageUrl(repo) {
 			exitWithError(errors.New("clone not support under http(s) repo"))
 		}
 
-		_, err = repository.NewRepository(repo)
+		_, err = repository.NewRepository(result)
 		exitWithError(err)
 
-		destDir, err := parseRepoName(repo)
+		destDir, err := repository.ParseRepoName(result)
 		exitWithError(err)
 
 		if len(args) > 1 {

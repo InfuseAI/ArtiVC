@@ -2,6 +2,8 @@ package repository
 
 import (
 	neturl "net/url"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -31,14 +33,15 @@ type Repository interface {
 	List(repoPath string) ([]FileInfo, error)
 }
 
-type repoParseResult struct {
+type RepoParseResult struct {
+	Repo   string
 	scheme string
 	host   string
 	path   string
 }
 
-func parseRepo(repo string) (repoParseResult, error) {
-	var result repoParseResult
+func ParseRepo(repo string) (RepoParseResult, error) {
+	var result RepoParseResult
 
 	if strings.Contains(repo, "://") {
 		url, err := neturl.Parse(repo)
@@ -52,16 +55,30 @@ func parseRepo(repo string) (repoParseResult, error) {
 			}
 		}
 
+		result.Repo = repo
 		result.scheme = url.Scheme
 		result.host = url.Host
 		result.path = url.Path
 	} else {
 		i := strings.Index(repo, ":")
 		if i > 0 {
+			result.Repo = repo
 			result.scheme = "ssh"
 			result.host = repo[0:i]
 			result.path = repo[i+1:]
 		} else {
+			cwd, err := os.Getwd()
+			if err != nil {
+				return result, err
+			}
+			if !strings.HasPrefix(repo, "/") {
+				repo, err = filepath.Abs(filepath.Join(cwd, repo))
+				if err != nil {
+					return result, err
+				}
+			}
+
+			result.Repo = repo
 			result.scheme = "file"
 			result.host = ""
 			result.path = repo
@@ -71,12 +88,30 @@ func parseRepo(repo string) (repoParseResult, error) {
 	return result, nil
 }
 
-func NewRepository(repo string) (Repository, error) {
-	result, err := parseRepo(repo)
-	if err != nil {
-		return nil, err
-	}
+func ParseRepoName(result RepoParseResult) (string, error) {
+	if result.scheme == "ssh" {
+		return result.host, nil
+	} else {
+		url, err := neturl.Parse(result.Repo)
+		if err != nil {
+			return "", err
+		}
 
+		if url.Path == "" {
+			return url.Hostname(), nil
+		}
+
+		name := filepath.Base(url.Path)
+		if name == "/" {
+			return url.Hostname(), nil
+		}
+
+		return name, nil
+	}
+}
+
+func NewRepository(result RepoParseResult) (Repository, error) {
+	repo := result.Repo
 	host := result.host
 	path := result.path
 

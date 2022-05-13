@@ -47,11 +47,10 @@ var configCommand = &cobra.Command{
 					exitWithError(errors.New("http(s) repository is not supported"))
 				}
 
-				cwd, _ := os.Getwd()
-				repo, err := transformRepoUrl(cwd, value)
+				result, err := repository.ParseRepo(value)
 				exitWithError(err)
 
-				_, err = repository.NewRepository(repo)
+				_, err = repository.NewRepository(result)
 				exitWithError(err)
 			}
 

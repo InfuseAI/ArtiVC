@@ -1,10 +1,27 @@
 package repository
 
 import (
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func getAbsFilePath(path string) string {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return ""
+	}
+	if !strings.HasPrefix(path, "/") {
+		path, err = filepath.Abs(filepath.Join(cwd, path))
+		if err != nil {
+			return ""
+		}
+	}
+	return path
+}
 
 func Test(t *testing.T) {
 	testCases := []struct {
@@ -14,9 +31,9 @@ func Test(t *testing.T) {
 		host   string
 		path   string
 	}{
-		{repo: "/tmp", scheme: "file", host: "", path: "/tmp"},
-		{repo: "tmp", scheme: "file", host: "", path: "tmp"},
-		{repo: "../tmp", scheme: "file", host: "", path: "../tmp"},
+		{repo: "/tmp", scheme: "file", host: "", path: getAbsFilePath("/tmp")},
+		{repo: "tmp", scheme: "file", host: "", path: getAbsFilePath("tmp")},
+		{repo: "../tmp", scheme: "file", host: "", path: getAbsFilePath("../tmp")},
 		{repo: "file:///tmp", scheme: "file", host: "", path: "/tmp"},
 		{repo: "host:/tmp", scheme: "ssh", host: "host", path: "/tmp"},
 		{repo: "host:tmp", scheme: "ssh", host: "host", path: "tmp"},
@@ -27,7 +44,7 @@ func Test(t *testing.T) {
 
 	for _, tC := range testCases {
 		t.Run("pares repo "+tC.repo, func(t *testing.T) {
-			result, err := parseRepo(tC.repo)
+			result, err := ParseRepo(tC.repo)
 			if err != nil {
 				t.Error(err)
 				return
