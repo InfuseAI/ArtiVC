@@ -90,7 +90,11 @@ func ParseRepo(repo string) (RepoParseResult, error) {
 
 func ParseRepoName(result RepoParseResult) (string, error) {
 	if result.scheme == "ssh" {
-		return result.host, nil
+		name := filepath.Base(result.path)
+		if name == "/" {
+			return result.host, nil
+		}
+		return name, nil
 	} else {
 		url, err := neturl.Parse(result.Repo)
 		if err != nil {
