@@ -23,7 +23,11 @@ func getRepo() (Repository, error) {
 	if repoStr == "" {
 		return nil, nil
 	}
-	return NewRepository(repoStr)
+	result, err := ParseRepo(repoStr)
+	if err != nil {
+		return nil, err
+	}
+	return NewRepository(result)
 }
 
 func sha1sum(path string) string {

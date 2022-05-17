@@ -58,7 +58,11 @@ func NewArtifactManager(config ArtConfig) (*ArtifactManager, error) {
 	if repoStr == "" {
 		return nil, errors.New("no repository specified")
 	}
-	repo, err := repository.NewRepository(repoStr)
+	result, err := repository.ParseRepo(repoStr)
+	if err != nil {
+		return nil, err
+	}
+	repo, err := repository.NewRepository(result)
 	if err != nil {
 		return nil, err
 	}
