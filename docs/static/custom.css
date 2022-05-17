@@ -175,3 +175,12 @@ img.gdoc-brand__img {
 span.gdoc-brand__title {
   visibility: hidden;
 }
+
+span.gdoc-button--entry {
+  background: var(--header-background);
+  color: var(--header-font-color)
+}
+
+span.gdoc-button--entry:hover {
+  background: var(--button-background);
+}
