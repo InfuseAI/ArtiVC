@@ -9,7 +9,7 @@ geekdocAnchor: false
 {{< columns >}}
 
 <p style="text-align: left">
-<b>ArtiVC (Arti</b>fact <b>V</b>ersion <b>C</b>ontrol<b>) is a handy command-line tool for data versioning on cloud storage.</b> With only one command, it helps you neatly snapshot your data and Switch data between versions. Even better, it seamlessly integrates your existing cloud environment. ArtiVC supports three major cloud providers (AWS S3, Google Cloud Storage, Azure Blob Storage) and the remote filesystem using SSH.
+<b>ArtiVC (Arti</b>fact <b>V</b>ersion <b>C</b>ontrol<b>) is a handy command-line tool for data versioning on cloud storage.</b> With only one command, it helps you neatly snapshot your data and switch data between versions. Even better, it seamlessly integrates your existing cloud environment. ArtiVC supports three major cloud providers (AWS S3, Google Cloud Storage, Azure Blob Storage) and the remote filesystem using SSH.
 </p>
 
 <span class="gdoc-button gdoc-button--large gdoc-button--entry">
