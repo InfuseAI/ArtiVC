@@ -15,7 +15,7 @@ There are good solutions like [Git LFS](https://git-lfs.github.com/) or [DVC](ht
 Yes. Just create different repositories with different prefixes in the same s3 bucket or different folders in NFS
 
 ### Q: What storage does ArtiVC support?
-Currently, we can support local, NFS(by local), and AWS S3. We will support GCS(Google Cloud Storage), Azure Blob Storage in the future.
+Currently, we can support local, NFS(by local), AWS S3, GCS(Google Cloud Storage) and Azure Blob Storage.
 
 ### Q: Do we support Windows?
 Not yet, we will implement and test it soon.
