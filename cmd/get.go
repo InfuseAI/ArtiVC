@@ -39,7 +39,7 @@ var getCmd = &cobra.Command{
 		if baseDir == "" {
 			comps := strings.Split(repoUrl, "/")
 			if len(comps) == 0 {
-				exitWithFormat("invlaid path: %v", repoUrl)
+				exitWithFormat("invalid path: %v", repoUrl)
 			}
 			baseDir = comps[len(comps)-1]
 		}
